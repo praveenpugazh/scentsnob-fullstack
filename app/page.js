@@ -146,8 +146,8 @@ export default function Home() {
       {/* ── HERO ── */}
       <section style={{ position:'relative', overflow:'hidden', minHeight:'88vh', display:'flex', alignItems:'center' }}>
         <div style={{ position:'absolute', inset:0, zIndex:0 }}>
-          <img src="/hero.jpg" alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', filter:'brightness(0.55) saturate(0.85)' }} />
-          <div style={{ position:'absolute', inset:0, background:'linear-gradient(105deg, rgba(10,9,8,0.98) 38%, rgba(10,9,8,0.7) 60%, rgba(10,9,8,0.15) 100%)' }} />
+          <img src="/hero.jpg" alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'60% center', filter:'brightness(0.5) saturate(0.9)' }} />
+          <div style={{ position:'absolute', inset:0, background:'linear-gradient(100deg, rgba(10,9,8,0.97) 30%, rgba(10,9,8,0.75) 50%, rgba(10,9,8,0.2) 80%, rgba(10,9,8,0.1) 100%)' }} />
           <div style={{ position:'absolute', inset:0, opacity:0.04, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, backgroundRepeat:'repeat', backgroundSize:'128px' }} />
         </div>
         <div style={{ position:'relative', zIndex:1, maxWidth:1400, margin:'0 auto', padding:'6rem 4vw 5rem', width:'100%' }}>
@@ -192,6 +192,37 @@ export default function Home() {
       </section>
 
       <main style={{ maxWidth:1400, margin:'0 auto', padding:'0 4vw 6rem' }}>
+
+        {/* ── CATALOGUE TABS — sticky strip ── */}
+        <div style={{ position:'sticky', top:56, zIndex:90, background:'rgba(10,9,8,0.97)', backdropFilter:'blur(12px)', borderBottom:'0.5px solid var(--border)', marginBottom:0 }}>
+          <div style={{ maxWidth:1400, margin:'0 auto', padding:'0 4vw', display:'flex', alignItems:'center', gap:0, overflowX:'auto', scrollbarWidth:'none' }}>
+            {TABS.map(({ id, label }) => (
+              <button key={id} onClick={() => switchTab(id)} style={{
+                background:'none', border:'none',
+                borderBottom: tab===id ? '2px solid var(--gold)' : '2px solid transparent',
+                color: tab===id ? 'var(--gold)' : 'var(--t3)',
+                padding:'12px 20px', fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase',
+                cursor:'pointer', transition:'all .2s', fontFamily:'var(--ff-sans)', whiteSpace:'nowrap', flexShrink:0,
+              }}>
+                {label}
+                {id === 'partials' && visiblePartials.length > 0 && (
+                  <span style={{ marginLeft:6, fontSize:9, background:'rgba(176,144,96,0.2)', color:'var(--gold)', padding:'2px 6px', borderRadius:10, fontWeight:600 }}>
+                    {visiblePartials.length}
+                  </span>
+                )}
+              </button>
+            ))}
+            {/* Search inline */}
+            <div style={{ marginLeft:'auto', position:'relative', flexShrink:0 }}>
+              <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--t3)', fontSize:14 }}>⌕</span>
+              <input value={search} onChange={e => { setSearch(e.target.value); setSelectedBrand(null); }}
+                placeholder="Search..."
+                style={{ background:'rgba(255,255,255,0.04)', border:'0.5px solid var(--border)', borderRadius:4, padding:'7px 10px 7px 28px', fontSize:12, color:'var(--t1)', outline:'none', width:180 }}
+              />
+              {search && <button onClick={() => setSearch('')} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:16 }}>×</button>}
+            </div>
+          </div>
+        </div>
 
         {/* ── NEW ARRIVALS ── */}
         {!loading && newArrivals.length > 0 && (
@@ -270,37 +301,7 @@ export default function Home() {
         {/* ── CATALOGUE ── */}
         <section ref={catalogRef} style={{ scrollMarginTop:72 }}>
 
-          {/* Search */}
-          <div style={{ position:'relative', maxWidth:600, margin:'0 auto 2.5rem' }}>
-            <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'var(--t3)', fontSize:16 }}>⌕</span>
-            <input value={search} onChange={e => { setSearch(e.target.value); setSelectedBrand(null); }}
-              placeholder="Search fragrances, brands, notes..."
-              style={{ width:'100%', background:'rgba(255,255,255,0.04)', border:'0.5px solid var(--border)', borderRadius:6, padding:'12px 14px 12px 40px', fontSize:14, color:'var(--t1)', outline:'none', boxSizing:'border-box' }}
-            />
-            {search && <button onClick={() => setSearch('')} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>×</button>}
-          </div>
 
-          {/* Tab bar */}
-          {!searchQ && (
-            <div style={{ display:'flex', gap:0, marginBottom:'2rem', borderBottom:'0.5px solid var(--border)', overflowX:'auto', scrollbarWidth:'none' }}>
-              {TABS.map(({ id, label }) => (
-                <button key={id} onClick={() => switchTab(id)} style={{
-                  background:'none', border:'none',
-                  borderBottom: tab===id ? '2px solid var(--gold)' : '2px solid transparent',
-                  color: tab===id ? 'var(--gold)' : 'var(--t3)',
-                  padding:'10px 20px', fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase',
-                  cursor:'pointer', transition:'all .2s', fontFamily:'var(--ff-sans)', whiteSpace:'nowrap', flexShrink:0,
-                }}>
-                  {label}
-                  {id === 'partials' && visiblePartials.length > 0 && (
-                    <span style={{ marginLeft:6, fontSize:9, background:'rgba(176,144,96,0.2)', color:'var(--gold)', padding:'2px 6px', borderRadius:10, fontWeight:600 }}>
-                      {visiblePartials.length}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* ── BRANDS TAB ── */}
           {!searchQ && tab === 'brands' && !selectedBrand && (
