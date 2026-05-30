@@ -144,13 +144,13 @@ export default function Home() {
       </div>
 
       {/* ── HERO ── */}
-      <section style={{ position:'relative', overflow:'hidden', minHeight:'88vh', display:'flex', alignItems:'center' }}>
+      <section style={{ position:'relative', overflow:'hidden', minHeight:'72vh', display:'flex', alignItems:'center' }}>
         <div style={{ position:'absolute', inset:0, zIndex:0 }}>
           <img src="/hero.jpg" alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'60% center', filter:'brightness(0.5) saturate(0.9)' }} />
           <div style={{ position:'absolute', inset:0, background:'linear-gradient(100deg, rgba(10,9,8,0.97) 30%, rgba(10,9,8,0.75) 50%, rgba(10,9,8,0.2) 80%, rgba(10,9,8,0.1) 100%)' }} />
           <div style={{ position:'absolute', inset:0, opacity:0.04, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, backgroundRepeat:'repeat', backgroundSize:'128px' }} />
         </div>
-        <div style={{ position:'relative', zIndex:1, maxWidth:1400, margin:'0 auto', padding:'6rem 4vw 5rem', width:'100%' }}>
+        <div style={{ position:'relative', zIndex:1, maxWidth:1400, margin:'0 auto', padding:'3rem 4vw 3rem', width:'100%' }}>
           <div style={{ maxWidth:620 }}>
             <div style={{ display:'inline-flex', alignItems:'center', gap:10, marginBottom:28 }}>
               <div style={{ width:28, height:'0.5px', background:'var(--gold)', opacity:0.6 }} />
@@ -185,10 +185,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div style={{ position:'absolute', bottom:32, left:'50%', transform:'translateX(-50%)', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, opacity:0.35 }}>
-          <span style={{ fontSize:9, letterSpacing:'0.2em', textTransform:'uppercase', color:'#fff' }}>Scroll</span>
-          <div style={{ width:0.5, height:32, background:'rgba(255,255,255,0.4)' }} />
-        </div>
+
       </section>
 
       <main style={{ maxWidth:1400, margin:'0 auto', padding:'0 4vw 6rem' }}>
