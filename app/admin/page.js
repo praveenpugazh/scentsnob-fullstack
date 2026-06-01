@@ -454,7 +454,7 @@ function ProductsTab() {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   useEffect(() => {
-    fetch('/api/products')
+    fetch('/api/products?admin=1')
       .then((r) => r.json())
       .then((d) => {
         setProducts(Array.isArray(d) ? d : [])
@@ -462,10 +462,16 @@ function ProductsTab() {
       })
   }, [])
 
-  const recalc = (paid, ml) => {
+  const recalc = (paid, ml, force = false) => {
     if (paid && ml) {
       const { p5, p10, p20 } = calcPrices(Number(paid), Number(ml))
-      setForm((f) => ({ ...f, p5, p10, p20 }))
+      setForm((f) => ({
+        ...f,
+        // Only auto-fill prices if they are still 0 (never manually set) OR force recalc
+        p5: force || !f.p5 ? p5 : f.p5,
+        p10: force || !f.p10 ? p10 : f.p10,
+        p20: force || !f.p20 ? p20 : f.p20
+      }))
     }
   }
 
@@ -479,7 +485,9 @@ function ProductsTab() {
       p5: Number(form.p5) || 0,
       p10: Number(form.p10) || 0,
       p20: Number(form.p20) || 0,
-      image_url: form.image_url || null
+      image_url: form.image_url || null,
+      paid_amount: form.paid_amount ? Number(form.paid_amount) : null,
+      bottle_ml: form.bottle_ml ? Number(form.bottle_ml) : null
     }
     if (editId) {
       const currentEditId = editId // capture before any state change
@@ -564,8 +572,8 @@ function ProductsTab() {
       name: p.name || '',
       notes: p.notes || '',
       category: p.category || 'niche',
-      paid_amount: '',
-      bottle_ml: '',
+      paid_amount: p.paid_amount != null ? String(p.paid_amount) : '',
+      bottle_ml: p.bottle_ml != null ? String(p.bottle_ml) : '',
       p5: p.p5 != null ? p.p5 : 0,
       p10: p.p10 != null ? p.p10 : 0,
       p20: p.p20 != null ? p.p20 : 0,
@@ -1453,7 +1461,7 @@ function StockTab() {
     Promise.all([
       fetch('/api/bottles').then((r) => r.json()),
       fetch('/api/orders').then((r) => r.json()),
-      fetch('/api/products').then((r) => r.json())
+      fetch('/api/products?admin=1').then((r) => r.json())
     ]).then(([b, o, p]) => {
       setBottles(Array.isArray(b) ? b : [])
       setOrders(Array.isArray(o) ? o : [])
