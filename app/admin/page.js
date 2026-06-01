@@ -482,40 +482,64 @@ function ProductsTab() {
       image_url: form.image_url || null
     }
     if (editId) {
-      const r = await fetch(`/api/products/${editId}`, {
+      const currentEditId = editId // capture before any state change
+      const r = await fetch(`/api/products/${currentEditId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
+      if (!r.ok) {
+        const err = await r.json()
+        alert('Save failed: ' + (err.error?.message || JSON.stringify(err)))
+        return
+      }
       const updated = await r.json()
       if (updated && updated.id) {
         setProducts((p) =>
-          p.map((x) => (x.id === editId ? { ...x, ...updated } : x))
+          p.map((x) => (x.id === currentEditId ? { ...x, ...updated } : x))
         )
       }
       setEditId(null)
+      setShowAdd(false)
+      setForm({
+        brand: '',
+        name: '',
+        notes: '',
+        category: 'niche',
+        paid_amount: '',
+        bottle_ml: '',
+        p5: 0,
+        p10: 0,
+        p20: 0,
+        image_url: ''
+      })
     } else {
       const r = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
+      if (!r.ok) {
+        const err = await r.json()
+        alert('Create failed: ' + (err.error?.message || JSON.stringify(err)))
+        return
+      }
       const created = await r.json()
       if (created && created.id) setProducts((p) => [created, ...p])
+      setShowAdd(false)
+      setForm({
+        brand: '',
+        name: '',
+        notes: '',
+        category: 'niche',
+        paid_amount: '',
+        bottle_ml: '',
+        p5: 0,
+        p10: 0,
+        p20: 0,
+        image_url: ''
+      })
     }
-    setForm({
-      brand: '',
-      name: '',
-      notes: '',
-      category: 'niche',
-      paid_amount: '',
-      bottle_ml: '',
-      p5: 0,
-      p10: 0,
-      p20: 0,
-      image_url: ''
-    })
-    setShowAdd(false)
   }
 
   const deleteProduct = async (id) => {
