@@ -11,15 +11,17 @@ export default function Nav({
   activeTab,
   onTabChange
 }) {
-  const safeTabChange = (id) => {
-    if (typeof onTabChange === 'function') safeTabChange(id)
-  }
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const supabase = createBrowserSupabase()
+
+  // Safe wrapper — won't crash if onTabChange not provided (e.g. /about page)
+  const goTab = (id) => {
+    if (typeof onTabChange === 'function') onTabChange(id)
+  }
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20)
@@ -37,7 +39,6 @@ export default function Nav({
     return () => subscription.unsubscribe()
   }, [])
 
-  // Close menu on outside click
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target))
@@ -47,10 +48,10 @@ export default function Nav({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const navLink = (id, label, emoji = '') => (
+  const mobileNavLink = (id, label, emoji = '') => (
     <button
       onClick={() => {
-        safeTabChange(id)
+        goTab(id)
         setMenuOpen(false)
         setSearchOpen(false)
         onSearch('')
@@ -88,7 +89,7 @@ export default function Nav({
   const desktopNavLink = (id, label) => (
     <button
       onClick={() => {
-        safeTabChange(id)
+        goTab(id)
         setSearchOpen(false)
         onSearch('')
       }}
@@ -138,7 +139,7 @@ export default function Nav({
           {/* Logo */}
           <button
             onClick={() => {
-              safeTabChange('home')
+              goTab('home')
               setSearchOpen(false)
               onSearch('')
               setMenuOpen(false)
@@ -160,25 +161,14 @@ export default function Nav({
             Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
           </button>
 
-          {/* Desktop nav links — hidden on mobile */}
+          {/* Desktop nav links */}
           <div
             className='desktop-nav'
             style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1 }}
           >
             {desktopNavLink('brands', 'Brands')}
             {desktopNavLink('partials', 'Partials')}
-            <Link
-              href='/about'
-              style={{
-                fontSize: 11,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.5)',
-                textDecoration: 'none'
-              }}
-            >
-              About
-            </Link>
+            {desktopNavLink('about', 'About')}
           </div>
 
           {/* Right side */}
@@ -261,7 +251,6 @@ export default function Nav({
                   alignItems: 'center',
                   padding: '4px'
                 }}
-                title='Search'
               >
                 ⌕
               </button>
@@ -323,9 +312,7 @@ export default function Nav({
                 fontSize: 12,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                fontFamily: 'var(--ff-sans)',
-                transition: 'all .2s',
-                position: 'relative'
+                fontFamily: 'var(--ff-sans)'
               }}
             >
               🧴
@@ -412,7 +399,7 @@ export default function Nav({
         </div>
       </nav>
 
-      {/* Mobile menu drawer */}
+      {/* Mobile menu */}
       {menuOpen && (
         <div
           style={{
@@ -434,38 +421,10 @@ export default function Nav({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {navLink('brands', 'Brands', '🏷️')}
-            {navLink('partials', 'Partials', '🧴')}
-            <button
-              onClick={() => setMenuOpen(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 13,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                fontFamily: 'var(--ff-sans)',
-                padding: '12px 0',
-                width: '100%',
-                textAlign: 'left',
-                color: 'rgba(255,255,255,0.65)',
-                borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10
-              }}
-            >
-              <span style={{ fontSize: 16 }}>ℹ️</span>
-              <Link
-                href='/about'
-                style={{ color: 'inherit', textDecoration: 'none' }}
-                onClick={() => setMenuOpen(false)}
-              >
-                About
-              </Link>
-            </button>
-            <div style={{ marginTop: 4 }}>
+            {mobileNavLink('brands', 'Brands', '🏷️')}
+            {mobileNavLink('partials', 'Partials', '🧴')}
+            {mobileNavLink('about', 'About', 'ℹ️')}
+            <div>
               {user ? (
                 <Link
                   href='/account'
@@ -480,12 +439,10 @@ export default function Nav({
                     fontSize: 13,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    fontFamily: 'var(--ff-sans)',
-                    borderBottom: '0.5px solid rgba(255,255,255,0.06)'
+                    fontFamily: 'var(--ff-sans)'
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>👤</span>
-                  My Account
+                  <span style={{ fontSize: 16 }}>👤</span> My Account
                 </Link>
               ) : (
                 <Link
@@ -504,8 +461,7 @@ export default function Nav({
                     fontFamily: 'var(--ff-sans)'
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>🔑</span>
-                  Sign In
+                  <span style={{ fontSize: 16 }}>🔑</span> Sign In
                 </Link>
               )}
             </div>
@@ -513,7 +469,6 @@ export default function Nav({
         </div>
       )}
 
-      {/* Responsive styles */}
       <style>{`
         .desktop-nav { display: flex !important; align-items: center; gap: 24px; flex: 1; }
         .hamburger { display: none !important; }
