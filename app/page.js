@@ -80,24 +80,11 @@ const BRAND_CATS = [
 export default function Home() {
   const [products, setProducts] = useState([])
   const [partials, setPartials] = useState([])
-  const [cart, setCart] = useState(() => {
-    if (typeof window === 'undefined') return {}
-    try {
-      return JSON.parse(localStorage.getItem('ssd_cart') || '{}')
-    } catch {
-      return {}
-    }
-  })
+  const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState(() => {
-    if (typeof window === 'undefined') return 'home'
-    return localStorage.getItem('ssd_tab') || 'home'
-  })
-  const [brandCat, setBrandCat] = useState(() => {
-    if (typeof window === 'undefined') return 'niche'
-    return localStorage.getItem('ssd_brandcat') || 'niche'
-  })
+  const [tab, setTab] = useState('home')
+  const [brandCat, setBrandCat] = useState('niche')
   const [selectedBrand, setSelectedBrand] = useState(null)
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState('')
@@ -132,6 +119,18 @@ export default function Home() {
     setToast(msg)
     setTimeout(() => setToast(''), 2200)
   }
+
+  // Hydrate from localStorage after mount (avoids SSR mismatch)
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('ssd_cart')
+      if (savedCart) setCart(JSON.parse(savedCart))
+      const savedTab = localStorage.getItem('ssd_tab')
+      if (savedTab) setTab(savedTab)
+      const savedCat = localStorage.getItem('ssd_brandcat')
+      if (savedCat) setBrandCat(savedCat)
+    } catch {}
+  }, [])
 
   // Persist cart to localStorage on every change
   useEffect(() => {
