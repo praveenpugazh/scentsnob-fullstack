@@ -496,8 +496,115 @@ const ACCORDS = [
   'Lavender'
 ]
 
+// ── Brand → Category mapping ─────────────────────────────────────
+const BRAND_CATEGORY = {
+  // Niche
+  Amouage: 'niche',
+  Xerjoff: 'niche',
+  Creed: 'niche',
+  'Tom Ford': 'niche',
+  'Maison Margiela': 'niche',
+  Initio: 'niche',
+  'Roja Parfums': 'niche',
+  'Parfums de Marly': 'niche',
+  "Penhaligon's": 'niche',
+  'Memo Paris': 'niche',
+  Mancera: 'niche',
+  Montale: 'niche',
+  Nishane: 'niche',
+  'Orto Parisi': 'niche',
+  Nasomatto: 'niche',
+  'Serge Lutens': 'niche',
+  'Maison Crivelli': 'niche',
+  'Ramon Monegal': 'niche',
+  Sospiro: 'niche',
+  Thameen: 'niche',
+  Mizensir: 'niche',
+  'Matiere Premiere': 'niche',
+  'Ormonde Jayne': 'niche',
+  'Rosendo Mateu': 'niche',
+  'Maison Margiela': 'niche',
+  'Maison Margiela Replica': 'niche',
+  'Pantheon Roma': 'niche',
+  'Mind Games': 'niche',
+  'Paris Corner': 'niche',
+  'Oman Luxury': 'niche',
+  Omanluxury: 'niche',
+  'The Spirit of Dubai': 'niche',
+  'Marc-Antoine Barrois': 'niche',
+  'Marc Antonnie Barrois': 'niche',
+
+  // Designer
+  Dior: 'designer',
+  Chanel: 'designer',
+  YSL: 'designer',
+  'Yves Saint Laurent': 'designer',
+  Versace: 'designer',
+  Prada: 'designer',
+  'Giorgio Armani': 'designer',
+  Armani: 'designer',
+  Gucci: 'designer',
+  Burberry: 'designer',
+  'Hugo Boss': 'designer',
+  'Calvin Klein': 'designer',
+  'Dolce & Gabbana': 'designer',
+  Givenchy: 'designer',
+  Hermes: 'designer',
+  Hermès: 'designer',
+  Valentino: 'designer',
+  Bvlgari: 'designer',
+  Bulgari: 'designer',
+  Cartier: 'designer',
+  Guerlain: 'designer',
+  Lancome: 'designer',
+  Lancôme: 'designer',
+  'Thierry Mugler': 'designer',
+  Mugler: 'designer',
+  'Jean Paul Gaultier': 'designer',
+  'Issey Miyake': 'designer',
+  'Narciso Rodriguez': 'designer',
+  'Marc Jacobs': 'designer',
+  Coach: 'designer',
+  'Michael Kors': 'designer',
+  'Ralph Lauren': 'designer',
+  Polo: 'designer',
+
+  // Middle Eastern / Dupes
+  Lattafa: 'dupe',
+  Rasasi: 'dupe',
+  Armaf: 'dupe',
+  Afnan: 'dupe',
+  Zimaya: 'dupe',
+  'Fragrance World': 'dupe',
+  'French Avenue': 'dupe',
+  Rayhaan: 'dupe',
+  'Al Haramain': 'dupe',
+  'Swiss Arabian': 'dupe',
+  'Ard Al Zaafaran': 'dupe',
+  Ajmal: 'dupe',
+  Nabeel: 'dupe',
+  Surrati: 'dupe',
+  Khadlaj: 'dupe',
+  'Maison Alhambra': 'dupe',
+  Emper: 'dupe',
+  Pendora: 'dupe',
+  'Ahmed Al Maghribi': 'dupe',
+  Alhambra: 'dupe',
+  'Paris Corner': 'dupe',
+  Milestone: 'dupe',
+  Johnwin: 'dupe',
+  Sapil: 'dupe',
+  Asdaaf: 'dupe',
+  'Al Fares': 'dupe',
+  Rio: 'dupe',
+  Riiffs: 'dupe',
+  Bharara: 'dupe',
+  'Fa Paris': 'dupe',
+  'Gulf Orchid': 'dupe'
+}
+
 // Searchable brand dropdown with add-new
-function BrandSelect({ value, onChange, allBrands }) {
+function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [brands, setBrands] = useState(allBrands)
@@ -526,13 +633,16 @@ function BrandSelect({ value, onChange, allBrands }) {
 
   const select = (brand) => {
     onChange(brand)
+    // Auto-set category based on brand
+    const cat = BRAND_CATEGORY[brand]
+    if (cat && onCategoryChange) onCategoryChange(cat)
     setQuery('')
     setOpen(false)
   }
   const addNew = () => {
     const newBrand = query.trim()
     setBrands((prev) => [...new Set([...prev, newBrand])].sort())
-    select(newBrand)
+    select(newBrand) // will default to niche if not in map
   }
 
   return (
@@ -1111,6 +1221,7 @@ function ProductsTab() {
                   value={form.brand}
                   onChange={(v) => set('brand', v)}
                   allBrands={allBrands}
+                  onCategoryChange={(v) => set('category', v)}
                 />
               </div>
               <div>
