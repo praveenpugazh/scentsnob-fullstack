@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { calcPrices, formatINR } from '@/lib/pricing'
 import { createBrowserSupabase } from '@/lib/supabase'
@@ -432,6 +432,356 @@ function OrdersTab() {
   )
 }
 
+// ── All fragrance accords ─────────────────────────────────────────
+const ACCORDS = [
+  'Oud',
+  'Woody',
+  'Smoky',
+  'Leather',
+  'Tobacco',
+  'Earthy',
+  'Mossy',
+  'Vetiver',
+  'Vanilla',
+  'Amber',
+  'Caramel',
+  'Honey',
+  'Gourmand',
+  'Sweet',
+  'Chocolate',
+  'Coffee',
+  'Rose',
+  'Jasmine',
+  'Floral',
+  'Iris',
+  'Peony',
+  'Tuberose',
+  'Neroli',
+  'Orange Blossom',
+  'Citrus',
+  'Bergamot',
+  'Lemon',
+  'Orange',
+  'Grapefruit',
+  'Lime',
+  'Mandarin',
+  'Fresh',
+  'Aquatic',
+  'Marine',
+  'Ozonic',
+  'Clean',
+  'Powdery',
+  'Soapy',
+  'Spicy',
+  'Pepper',
+  'Cardamom',
+  'Saffron',
+  'Cinnamon',
+  'Clove',
+  'Incense',
+  'Sandalwood',
+  'Cedar',
+  'Pine',
+  'Patchouli',
+  'Musk',
+  'White Musk',
+  'Animalic',
+  'Fruity',
+  'Peach',
+  'Berries',
+  'Coconut',
+  'Tropical',
+  'Green',
+  'Herbal',
+  'Lavender'
+]
+
+// Searchable brand dropdown with add-new
+function BrandSelect({ value, onChange, allBrands }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [brands, setBrands] = useState(allBrands)
+  const ref = React.useRef(null)
+
+  // Sync external brands list
+  React.useEffect(() => {
+    setBrands(allBrands)
+  }, [allBrands])
+
+  // Close on outside click
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = brands.filter((b) =>
+    b.toLowerCase().includes(query.toLowerCase())
+  )
+  const canAdd =
+    query.trim() &&
+    !brands.find((b) => b.toLowerCase() === query.trim().toLowerCase())
+
+  const select = (brand) => {
+    onChange(brand)
+    setQuery('')
+    setOpen(false)
+  }
+  const addNew = () => {
+    const newBrand = query.trim()
+    setBrands((prev) => [...new Set([...prev, newBrand])].sort())
+    select(newBrand)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div
+        onClick={() => {
+          setOpen((o) => !o)
+          setQuery('')
+        }}
+        style={{
+          ...S_modal.inp,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}
+      >
+        <span
+          style={{
+            color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'
+          }}
+        >
+          {value || 'Select brand...'}
+        </span>
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>
+          {open ? '▲' : '▼'}
+        </span>
+      </div>
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 400,
+            background: '#1a1714',
+            border: '0.5px solid rgba(176,144,96,0.3)',
+            borderRadius: 6,
+            marginTop: 4,
+            maxHeight: 240,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <div
+            style={{
+              padding: '8px 10px',
+              borderBottom: '0.5px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='Search or type new brand...'
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'rgba(255,255,255,0.9)',
+                fontSize: 13,
+                fontFamily: 'var(--ff-sans)'
+              }}
+            />
+          </div>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {canAdd && (
+              <div
+                onClick={addNew}
+                style={{
+                  padding: '9px 12px',
+                  fontSize: 12,
+                  color: '#4caf7d',
+                  cursor: 'pointer',
+                  borderBottom: '0.5px solid rgba(255,255,255,0.04)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span>+</span> Add "{query.trim()}"
+              </div>
+            )}
+            {filtered.length === 0 && !canAdd && (
+              <div
+                style={{
+                  padding: '12px',
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.3)',
+                  textAlign: 'center'
+                }}
+              >
+                No brands found
+              </div>
+            )}
+            {filtered.map((b) => (
+              <div
+                key={b}
+                onClick={() => select(b)}
+                style={{
+                  padding: '9px 12px',
+                  fontSize: 13,
+                  color: b === value ? '#b09060' : 'rgba(255,255,255,0.75)',
+                  cursor: 'pointer',
+                  background: b === value ? 'rgba(176,144,96,0.08)' : 'none'
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background =
+                    b === value ? 'rgba(176,144,96,0.08)' : 'none')
+                }
+              >
+                {b}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Multi-select notes/accords picker
+function NotesSelect({ value, onChange }) {
+  // value is a string like "Fresh · Ozonic · Vibrant"
+  const selected = value ? value.split(' · ').filter(Boolean) : []
+  const [search, setSearch] = useState('')
+
+  const toggle = (accord) => {
+    const newSelected = selected.includes(accord)
+      ? selected.filter((a) => a !== accord)
+      : [...selected, accord]
+    onChange(newSelected.join(' · '))
+  }
+
+  const filtered = ACCORDS.filter((a) =>
+    a.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div>
+      {/* Selected pills */}
+      {selected.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+            marginBottom: 10
+          }}
+        >
+          {selected.map((a) => (
+            <span
+              key={a}
+              onClick={() => toggle(a)}
+              style={{
+                fontSize: 11,
+                padding: '3px 10px',
+                borderRadius: 20,
+                background: 'rgba(176,144,96,0.18)',
+                border: '0.5px solid rgba(176,144,96,0.4)',
+                color: '#b09060',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              {a} <span style={{ fontSize: 10, opacity: 0.7 }}>×</span>
+            </span>
+          ))}
+          <span
+            style={{
+              fontSize: 11,
+              color: 'rgba(255,255,255,0.25)',
+              padding: '3px 0',
+              alignSelf: 'center'
+            }}
+          >
+            → {value}
+          </span>
+        </div>
+      )}
+      {/* Search */}
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder='Search accords...'
+        style={{ ...S_modal.inp, marginBottom: 8, fontSize: 12 }}
+      />
+      {/* Grid of accords */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 5,
+          maxHeight: 140,
+          overflowY: 'auto',
+          padding: '2px 0'
+        }}
+      >
+        {filtered.map((a) => (
+          <button
+            key={a}
+            onClick={() => toggle(a)}
+            style={{
+              fontSize: 11,
+              padding: '4px 10px',
+              borderRadius: 20,
+              cursor: 'pointer',
+              border: 'none',
+              background: selected.includes(a)
+                ? 'rgba(176,144,96,0.2)'
+                : 'rgba(255,255,255,0.05)',
+              color: selected.includes(a) ? '#b09060' : 'rgba(255,255,255,0.5)',
+              outline: selected.includes(a)
+                ? '0.5px solid rgba(176,144,96,0.4)'
+                : '0.5px solid rgba(255,255,255,0.08)',
+              fontFamily: 'var(--ff-sans)'
+            }}
+          >
+            {a}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const S_modal = {
+  inp: {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'rgba(255,255,255,0.05)',
+    border: '0.5px solid rgba(255,255,255,0.12)',
+    borderRadius: 6,
+    padding: '10px 12px',
+    fontFamily: 'var(--ff-sans)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    outline: 'none'
+  }
+}
+
 // ── PRODUCTS TAB ─────────────────────────────────────────────────────────────
 function ProductsTab() {
   const [products, setProducts] = useState([])
@@ -451,27 +801,24 @@ function ProductsTab() {
     image_url: ''
   })
   const [editId, setEditId] = useState(null)
+  const [allBrands, setAllBrands] = useState([])
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   useEffect(() => {
     fetch('/api/products?admin=1')
       .then((r) => r.json())
       .then((d) => {
-        setProducts(Array.isArray(d) ? d : [])
+        const prods = Array.isArray(d) ? d : []
+        setProducts(prods)
+        setAllBrands([...new Set(prods.map((p) => p.brand))].sort())
         setLoading(false)
       })
   }, [])
 
-  const recalc = (paid, ml, force = false) => {
+  const recalc = (paid, ml) => {
     if (paid && ml) {
       const { p5, p10, p20 } = calcPrices(Number(paid), Number(ml))
-      setForm((f) => ({
-        ...f,
-        // Only auto-fill prices if they are still 0 (never manually set) OR force recalc
-        p5: force || !f.p5 ? p5 : f.p5,
-        p10: force || !f.p10 ? p10 : f.p10,
-        p20: force || !f.p20 ? p20 : f.p20
-      }))
+      setForm((f) => ({ ...f, p5, p10, p20, _autoCalc: true }))
     }
   }
 
@@ -563,7 +910,21 @@ function ProductsTab() {
       body: JSON.stringify({ sold_out: !p.sold_out })
     })
     const updated = await r.json()
-    setProducts((ps) => ps.map((x) => (x.id === p.id ? updated : x)))
+    setProducts((ps) =>
+      ps.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
+    )
+  }
+
+  const toggleIsNew = async (p) => {
+    const r = await fetch(`/api/products/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_new: !p.is_new })
+    })
+    const updated = await r.json()
+    setProducts((ps) =>
+      ps.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
+    )
   }
 
   const startEdit = (p) => {
@@ -653,157 +1014,267 @@ function ProductsTab() {
         </button>
       </div>
 
+      {/* Product Modal */}
       {showAdd && (
         <div
           style={{
-            background: 'rgba(176,144,96,0.05)',
-            border: '0.5px solid rgba(176,144,96,0.2)',
-            borderRadius: 8,
-            padding: '1.25rem',
-            marginBottom: 20
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
           }}
         >
           <div
             style={{
-              fontSize: 11,
-              color: 'var(--gold)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              marginBottom: 14
+              background: '#0e0c0a',
+              border: '0.5px solid rgba(176,144,96,0.25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 680,
+              maxHeight: '90vh',
+              overflowY: 'auto'
             }}
           >
-            {editId ? 'Edit Product' : 'New Product'}
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 2fr',
-              gap: 10,
-              marginBottom: 10
-            }}
-          >
-            <div>
-              <label style={S.lbl}>Brand</label>
-              <input
-                style={S.inp}
-                value={form.brand}
-                onChange={(e) => set('brand', e.target.value)}
-                placeholder='Xerjoff'
-              />
-            </div>
-            <div>
-              <label style={S.lbl}>Name</label>
-              <input
-                style={S.inp}
-                value={form.name}
-                onChange={(e) => set('name', e.target.value)}
-                placeholder='Naxos EDP'
-              />
-            </div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={S.lbl}>Notes (scent profile)</label>
-            <input
-              style={S.inp}
-              value={form.notes}
-              onChange={(e) => set('notes', e.target.value)}
-              placeholder='Lavender · Honey · Tobacco · Vanilla'
-            />
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 10,
-              marginBottom: 10
-            }}
-          >
-            <div>
-              <label style={S.lbl}>Category</label>
-              <select
-                style={S.inp}
-                value={form.category}
-                onChange={(e) => set('category', e.target.value)}
+            {/* Modal header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'var(--gold)',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600
+                }}
               >
-                <option value='niche'>Niche</option>
-                <option value='designer'>Designer</option>
-                <option value='dupe'>Dupe / Middle Eastern</option>
-              </select>
-            </div>
-            <div>
-              <label style={S.lbl}>Amount Paid (₹)</label>
-              <input
-                style={S.inp}
-                type='number'
-                value={form.paid_amount}
-                placeholder='5500'
-                onChange={(e) => {
-                  set('paid_amount', e.target.value)
-                  recalc(e.target.value, form.bottle_ml)
+                {editId ? 'Edit Product' : 'New Product'}
+              </div>
+              <button
+                onClick={() => {
+                  setShowAdd(false)
+                  setEditId(null)
+                  setForm({
+                    brand: '',
+                    name: '',
+                    notes: '',
+                    category: 'niche',
+                    paid_amount: '',
+                    bottle_ml: '',
+                    p5: 0,
+                    p10: 0,
+                    p20: 0,
+                    image_url: ''
+                  })
                 }}
-              />
-            </div>
-            <div>
-              <label style={S.lbl}>Bottle Size (ml)</label>
-              <input
-                style={S.inp}
-                type='number'
-                value={form.bottle_ml}
-                placeholder='50'
-                onChange={(e) => {
-                  set('bottle_ml', e.target.value)
-                  recalc(form.paid_amount, e.target.value)
+                style={{
+                  ...S.btn,
+                  background: 'none',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontSize: 20,
+                  padding: '0 4px',
+                  border: 'none'
                 }}
-              />
+              >
+                ×
+              </button>
             </div>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 10,
-              marginBottom: 10
-            }}
-          >
-            {[
-              ['p5', '5ml Price'],
-              ['p10', '10ml Price'],
-              ['p20', '20ml Price']
-            ].map(([k, l]) => (
-              <div key={k}>
-                <label style={S.lbl}>{l} (₹)</label>
-                <input
-                  style={{ ...S.inp, color: '#b09060' }}
-                  type='number'
-                  value={form[k]}
-                  onChange={(e) => set(k, Number(e.target.value))}
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 2fr',
+                gap: 12,
+                marginBottom: 12
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Brand</label>
+                <BrandSelect
+                  value={form.brand}
+                  onChange={(v) => set('brand', v)}
+                  allBrands={allBrands}
                 />
               </div>
-            ))}
+              <div>
+                <label style={S.lbl}>Name</label>
+                <input
+                  style={S.inp}
+                  value={form.name}
+                  onChange={(e) => set('name', e.target.value)}
+                  placeholder='Naxos EDP'
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={S.lbl}>Notes / Accords</label>
+              <NotesSelect
+                value={form.notes}
+                onChange={(v) => set('notes', v)}
+              />
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: 12,
+                marginBottom: 12
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Category</label>
+                <select
+                  style={S.inp}
+                  value={form.category}
+                  onChange={(e) => set('category', e.target.value)}
+                >
+                  <option value='niche'>Niche</option>
+                  <option value='designer'>Designer</option>
+                  <option value='dupe'>Dupe / Middle Eastern</option>
+                </select>
+              </div>
+              <div>
+                <label style={S.lbl}>Amount Paid (₹)</label>
+                <input
+                  style={S.inp}
+                  type='number'
+                  value={form.paid_amount}
+                  placeholder='5500'
+                  onChange={(e) => {
+                    set('paid_amount', e.target.value)
+                    recalc(e.target.value, form.bottle_ml)
+                  }}
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Bottle Size (ml)</label>
+                <input
+                  style={S.inp}
+                  type='number'
+                  value={form.bottle_ml}
+                  placeholder='50'
+                  onChange={(e) => {
+                    set('bottle_ml', e.target.value)
+                    recalc(form.paid_amount, e.target.value)
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Price fields — gold tint, user can override */}
+            <div
+              style={{
+                background: 'rgba(176,144,96,0.04)',
+                border: '0.5px solid rgba(176,144,96,0.12)',
+                borderRadius: 6,
+                padding: '12px',
+                marginBottom: 12
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: 'var(--gold)',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: 10
+                }}
+              >
+                Selling Prices — auto-calculated, override if needed
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: 12
+                }}
+              >
+                {[
+                  ['p5', '5ml'],
+                  ['p10', '10ml'],
+                  ['p20', '20ml']
+                ].map(([k, l]) => (
+                  <div key={k}>
+                    <label style={S.lbl}>{l} Price (₹)</label>
+                    <input
+                      style={{ ...S.inp, color: '#b09060', fontWeight: 500 }}
+                      type='number'
+                      value={form[k]}
+                      onChange={(e) => set(k, Number(e.target.value))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={S.lbl}>Image URL (Cloudinary)</label>
+              <input
+                style={S.inp}
+                value={form.image_url}
+                onChange={(e) => set('image_url', e.target.value)}
+                placeholder='https://res.cloudinary.com/...'
+              />
+            </div>
+
+            <div
+              style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}
+            >
+              <button
+                onClick={() => {
+                  setShowAdd(false)
+                  setEditId(null)
+                  setForm({
+                    brand: '',
+                    name: '',
+                    notes: '',
+                    category: 'niche',
+                    paid_amount: '',
+                    bottle_ml: '',
+                    p5: 0,
+                    p10: 0,
+                    p20: 0,
+                    image_url: ''
+                  })
+                }}
+                style={{
+                  ...S.btn,
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.5)',
+                  border: '0.5px solid rgba(255,255,255,0.1)',
+                  padding: '9px 20px',
+                  fontSize: 12
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveProduct}
+                style={{
+                  ...S.btn,
+                  background: '#b09060',
+                  color: '#fff',
+                  padding: '9px 24px',
+                  fontSize: 12,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                {editId ? 'Save Changes' : 'Add Product'}
+              </button>
+            </div>
           </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={S.lbl}>Image URL (Cloudinary)</label>
-            <input
-              style={S.inp}
-              value={form.image_url}
-              onChange={(e) => set('image_url', e.target.value)}
-              placeholder='https://res.cloudinary.com/...'
-            />
-          </div>
-          <button
-            onClick={saveProduct}
-            style={{
-              ...S.btn,
-              background: '#b09060',
-              color: '#fff',
-              padding: '9px 20px',
-              fontSize: 12,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase'
-            }}
-          >
-            {editId ? 'Save Changes' : 'Add Product'}
-          </button>
         </div>
       )}
 
@@ -904,6 +1375,26 @@ function ProductsTab() {
                     SOLD OUT
                   </span>
                 )}
+                <button
+                  onClick={() => toggleIsNew(p)}
+                  title={
+                    p.is_new
+                      ? 'Remove from New Arrivals'
+                      : 'Mark as New Arrival'
+                  }
+                  style={{
+                    ...S.btn,
+                    fontSize: 10,
+                    padding: '4px 8px',
+                    background: p.is_new
+                      ? 'rgba(100,160,255,0.15)'
+                      : 'rgba(255,255,255,0.04)',
+                    color: p.is_new ? '#6aa0ff' : 'rgba(255,255,255,0.3)',
+                    border: `0.5px solid ${p.is_new ? 'rgba(100,160,255,0.3)' : 'rgba(255,255,255,0.1)'}`
+                  }}
+                >
+                  {p.is_new ? '★ New' : '☆ New'}
+                </button>
                 <button
                   onClick={() => toggleSoldOut(p)}
                   style={{
