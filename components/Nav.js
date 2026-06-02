@@ -6,11 +6,14 @@ import { createBrowserSupabase } from '@/lib/supabase'
 export default function Nav({
   cartCount = 0,
   onCartOpen,
-  onSearch,
+  onSearch = () => {},
   searchValue = '',
   activeTab,
   onTabChange
 }) {
+  const safeTabChange = (id) => {
+    if (typeof onTabChange === 'function') safeTabChange(id)
+  }
   const [scrolled, setScrolled] = useState(false)
   const [user, setUser] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -47,7 +50,7 @@ export default function Nav({
   const navLink = (id, label, emoji = '') => (
     <button
       onClick={() => {
-        onTabChange(id)
+        safeTabChange(id)
         setMenuOpen(false)
         setSearchOpen(false)
         onSearch('')
@@ -85,7 +88,7 @@ export default function Nav({
   const desktopNavLink = (id, label) => (
     <button
       onClick={() => {
-        onTabChange(id)
+        safeTabChange(id)
         setSearchOpen(false)
         onSearch('')
       }}
@@ -135,7 +138,7 @@ export default function Nav({
           {/* Logo */}
           <button
             onClick={() => {
-              onTabChange('home')
+              safeTabChange('home')
               setSearchOpen(false)
               onSearch('')
               setMenuOpen(false)
