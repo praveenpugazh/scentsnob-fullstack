@@ -798,7 +798,8 @@ function ProductsTab() {
     p5: 0,
     p10: 0,
     p20: 0,
-    image_url: ''
+    image_url: '',
+    mrp: null
   })
   const [editId, setEditId] = useState(null)
   const [allBrands, setAllBrands] = useState([])
@@ -866,7 +867,8 @@ function ProductsTab() {
         p5: 0,
         p10: 0,
         p20: 0,
-        image_url: ''
+        image_url: '',
+        mrp: null
       })
     } else {
       const r = await fetch('/api/products', {
@@ -892,7 +894,8 @@ function ProductsTab() {
         p5: 0,
         p10: 0,
         p20: 0,
-        image_url: ''
+        image_url: '',
+        mrp: null
       })
     }
   }
@@ -938,7 +941,8 @@ function ProductsTab() {
       p5: p.p5 != null ? p.p5 : 0,
       p10: p.p10 != null ? p.p10 : 0,
       p20: p.p20 != null ? p.p20 : 0,
-      image_url: p.image_url || ''
+      image_url: p.image_url || '',
+      mrp: p.mrp != null ? p.mrp : null
     })
     setEditId(p.id)
     setShowAdd(true)
@@ -996,7 +1000,8 @@ function ProductsTab() {
               p5: 0,
               p10: 0,
               p20: 0,
-              image_url: ''
+              image_url: '',
+              mrp: null
             })
           }}
           style={{
@@ -1075,7 +1080,8 @@ function ProductsTab() {
                     p5: 0,
                     p10: 0,
                     p20: 0,
-                    image_url: ''
+                    image_url: '',
+                    mrp: null
                   })
                 }}
                 style={{
@@ -1218,14 +1224,42 @@ function ProductsTab() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={S.lbl}>Image URL (Cloudinary)</label>
-              <input
-                style={S.inp}
-                value={form.image_url}
-                onChange={(e) => set('image_url', e.target.value)}
-                placeholder='https://res.cloudinary.com/...'
-              />
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+                marginBottom: 12
+              }}
+            >
+              <div>
+                <label style={S.lbl}>
+                  MRP — Full Bottle (₹){' '}
+                  <span
+                    style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 400 }}
+                  >
+                    optional
+                  </span>
+                </label>
+                <input
+                  style={S.inp}
+                  type='number'
+                  value={form.mrp || ''}
+                  onChange={(e) =>
+                    set('mrp', e.target.value ? Number(e.target.value) : null)
+                  }
+                  placeholder='e.g. 31999'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Image URL (Cloudinary)</label>
+                <input
+                  style={S.inp}
+                  value={form.image_url}
+                  onChange={(e) => set('image_url', e.target.value)}
+                  placeholder='https://res.cloudinary.com/...'
+                />
+              </div>
             </div>
 
             <div
@@ -1245,7 +1279,8 @@ function ProductsTab() {
                     p5: 0,
                     p10: 0,
                     p20: 0,
-                    image_url: ''
+                    image_url: '',
+                    mrp: null
                   })
                 }}
                 style={{

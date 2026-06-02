@@ -239,17 +239,32 @@ export default function ProductCard({
             }}
           >
             <div>
-              {p5 > 0 && (
-                <div
-                  style={{
-                    fontSize: 15,
-                    color: 'var(--gold)',
-                    fontWeight: 500
-                  }}
-                >
-                  {formatINR(p5)}{' '}
-                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>
-                    / 5ml
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                {p5 > 0 && (
+                  <div
+                    style={{
+                      fontSize: 15,
+                      color: 'var(--gold)',
+                      fontWeight: 500
+                    }}
+                  >
+                    {formatINR(p5)}{' '}
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>
+                      / 5ml
+                    </span>
+                  </div>
+                )}
+              </div>
+              {product.mrp > 0 && (
+                <div style={{ fontSize: 10, color: 'var(--t3)' }}>
+                  Full bottle{' '}
+                  <span
+                    style={{
+                      textDecoration: 'line-through',
+                      color: 'rgba(255,255,255,0.25)'
+                    }}
+                  >
+                    {formatINR(product.mrp)}
                   </span>
                 </div>
               )}

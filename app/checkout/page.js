@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import LuckyWheel from '@/components/LuckyWheel'
 import Link from 'next/link'
 import { createBrowserSupabase } from '@/lib/supabase'
 import {
@@ -43,6 +44,9 @@ export default function CheckoutPage() {
   const [userId, setUserId] = useState(null)
   const [paying, setPaying] = useState(false)
   const [done, setDone] = useState(null) // confirmed order
+  const [wheelPrize, setWheelPrize] = useState(null)
+  const [showWheel, setShowWheel] = useState(false)
+  const [products, setProducts] = useState([])
 
   // Address fields — 4 lines
   const [name, setName] = useState('')
@@ -55,6 +59,13 @@ export default function CheckoutPage() {
   // Validation errors
   const [errors, setErrors] = useState({})
   const [submitErr, setSubmitErr] = useState('')
+
+  // Load products for wheel
+  useEffect(() => {
+    fetch('/api/products')
+      .then((r) => r.json())
+      .then((d) => setProducts(Array.isArray(d) ? d : []))
+  }, [])
 
   // Load cart + user on mount — redirect to login if not authenticated
   useEffect(() => {
@@ -235,6 +246,20 @@ export default function CheckoutPage() {
     color: 'rgba(255,255,255,0.4)',
     display: 'block',
     marginBottom: 6
+  }
+
+  const handleWheelWin = async (prize) => {
+    setWheelPrize(prize)
+    // Save prize to order notes
+    if (done?.id) {
+      await fetch(`/api/orders/${done.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          notes: `Free sample: ${prize.brand} ${prize.name} 2ml`
+        })
+      })
+    }
   }
 
   // ── ORDER CONFIRMED ──────────────────────────────────────────────────
@@ -482,6 +507,42 @@ export default function CheckoutPage() {
               Payment ID: {done.payment_id}
             </div>
           </div>
+
+          {showWheel && (
+            <LuckyWheel
+              products={products}
+              onWin={handleWheelWin}
+              onClose={() => setShowWheel(false)}
+            />
+          )}
+
+          {wheelPrize && !showWheel && (
+            <div
+              style={{
+                background: 'rgba(176,144,96,0.08)',
+                border: '0.5px solid rgba(176,144,96,0.25)',
+                borderRadius: 8,
+                padding: '12px 16px',
+                marginBottom: 16,
+                textAlign: 'center'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'var(--gold)',
+                  marginBottom: 4
+                }}
+              >
+                🎁 Your free sample
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--t1)' }}>
+                {wheelPrize.brand} {wheelPrize.name} — 2ml
+              </div>
+            </div>
+          )}
 
           <Link
             href='/'
