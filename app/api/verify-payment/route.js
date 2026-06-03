@@ -36,10 +36,10 @@ export async function POST(req) {
     }
 
     // 2. Generate order ref
-    const { count } = await supabaseAdmin()
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-    const orderRef = `SS-${String((count || 0) + 1).padStart(3, '0')}`
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let orderRef = 'SS-'
+    for (let i = 0; i < 6; i++)
+      orderRef += chars[Math.floor(Math.random() * chars.length)]
 
     // 3. Save order as Paid
     const insertData = {

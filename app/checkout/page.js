@@ -1151,7 +1151,7 @@ export default function CheckoutPage() {
                     justifyContent: 'space-between',
                     fontSize: 13,
                     color: 'var(--t3)',
-                    marginBottom: 14
+                    marginBottom: couponApplied ? 6 : 14
                   }}
                 >
                   <span>Shipping</span>
@@ -1161,6 +1161,20 @@ export default function CheckoutPage() {
                     {shipping === 0 ? 'Free 🎉' : formatINR(shipping)}
                   </span>
                 </div>
+                {couponApplied && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 13,
+                      color: '#4caf7d',
+                      marginBottom: 14
+                    }}
+                  >
+                    <span>Discount ({couponApplied.code})</span>
+                    <span>− {formatINR(discountAmount)}</span>
+                  </div>
+                )}
                 <div
                   style={{
                     display: 'flex',
@@ -1173,9 +1187,23 @@ export default function CheckoutPage() {
                   }}
                 >
                   <span>Total</span>
-                  <span style={{ color: 'var(--gold)' }}>
-                    {formatINR(grandTotal)}
-                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    {couponApplied && (
+                      <div
+                        style={{
+                          fontSize: '0.9rem',
+                          color: 'var(--t3)',
+                          textDecoration: 'line-through',
+                          marginBottom: 2
+                        }}
+                      >
+                        {formatINR(grandTotal)}
+                      </div>
+                    )}
+                    <span style={{ color: 'var(--gold)' }}>
+                      {formatINR(finalTotal)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
