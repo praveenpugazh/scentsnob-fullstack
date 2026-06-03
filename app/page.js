@@ -52,11 +52,12 @@ function comboPrice(combo) {
   return { original, discounted, saving: original - discounted }
 }
 
-function addComboToCart(combo, addToCart) {
+function addComboToCart(combo, addToCart, showToast) {
   const { discounted } = comboPrice(combo)
   const original = combo.items.reduce((s, i) => s + i.price, 0)
   combo.items.forEach((item) => {
     const p = Math.round(((item.price / original) * discounted) / 10) * 10
+    // Pass silent=true to suppress individual toasts
     addToCart(
       {
         id: `combo-${combo.id}-${item.name}`,
@@ -65,9 +66,13 @@ function addComboToCart(combo, addToCart) {
         isPartial: false
       },
       item.size,
-      p
+      p,
+      true
     )
   })
+  // Show one combined toast for the whole combo
+  if (showToast)
+    showToast(`${combo.label} added — ${combo.items.length} items 🧴`)
 }
 
 // Brand categories
@@ -153,7 +158,7 @@ export default function Home() {
     } catch {}
   }, [brandCat])
 
-  const addToCart = useCallback((product, size, price) => {
+  const addToCart = useCallback((product, size, price, silent = false) => {
     const key = `${product.id}-${size}`
     setCart((c) => ({
       ...c,
@@ -169,7 +174,7 @@ export default function Home() {
             isPartial: !!product.isPartial
           }
     }))
-    showToast(`${product.name} added`)
+    if (!silent) showToast(`${product.name} added`)
   }, [])
 
   const changeQty = useCallback((key, delta) => {
@@ -802,7 +807,9 @@ export default function Home() {
                       </div>
                     </div>
                     <button
-                      onClick={() => addComboToCart(combo, addToCart)}
+                      onClick={() =>
+                        addComboToCart(combo, addToCart, showToast)
+                      }
                       style={{
                         display: 'flex',
                         alignItems: 'center',
