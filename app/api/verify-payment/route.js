@@ -95,9 +95,12 @@ export async function POST(req) {
       }
     }
 
-    // 5. Send confirmation email to customer (fire and forget)
+    // 5. Send confirmation email to customer + owner notification (fire and forget)
     sendOrderConfirmation(order, items).catch((e) =>
-      console.error('Email error:', e)
+      console.error('Customer email error:', e)
+    )
+    sendOwnerNotification(order, items).catch((e) =>
+      console.error('Owner email error:', e)
     )
 
     // 6. WhatsApp notification to you (fire and forget)
@@ -220,6 +223,71 @@ async function sendOrderConfirmation(order, items) {
 </table>
 </body>
 </html>
+    `
+  })
+}
+
+async function sendOwnerNotification(order, items) {
+  const nodemailer = (await import('nodemailer')).default
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+  })
+
+  const itemsText = (items || [])
+    .map(
+      (i) =>
+        `${i.brand} ${i.name} (${i.size}) ×${i.qty} = ₹${(i.price * i.qty).toLocaleString('en-IN')}`
+    )
+    .join('\n')
+
+  await transporter.sendMail({
+    from: `"Scent Snob Orders" <${process.env.GMAIL_USER}>`,
+    to: 'thescentsnobb@gmail.com',
+    subject: `🧴 New Order ${order.order_ref} — ₹${order.total.toLocaleString('en-IN')}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:500px;background:#0a0908;color:#fff;padding:24px;border-radius:8px;">
+        <h2 style="color:#b09060;margin:0 0 4px;">New Order Received</h2>
+        <p style="color:#888;margin:0 0 20px;font-size:13px;">${new Date(order.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <tr><td style="color:#888;font-size:12px;padding:4px 0;">Order ID</td><td style="color:#b09060;font-weight:600;font-size:14px;">${order.order_ref}</td></tr>
+          <tr><td style="color:#888;font-size:12px;padding:4px 0;">Customer</td><td style="color:#fff;font-size:13px;">${order.customer}</td></tr>
+          <tr><td style="color:#888;font-size:12px;padding:4px 0;">Phone</td><td style="color:#fff;font-size:13px;">${order.phone}</td></tr>
+          <tr><td style="color:#888;font-size:12px;padding:4px 0;">Address</td><td style="color:#fff;font-size:13px;">${(order.address || '').replace(/\n/g, ', ')}</td></tr>
+        </table>
+
+        <div style="background:#1a1714;border-radius:6px;padding:14px;margin-bottom:16px;">
+          <div style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Items</div>
+          ${(items || [])
+            .map(
+              (i) => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #2a2520;">
+              <div>
+                <div style="color:#b09060;font-size:10px;text-transform:uppercase;">${i.brand}</div>
+                <div style="color:#fff;font-size:13px;">${i.name} (${i.size}) ×${i.qty}</div>
+              </div>
+              <div style="color:#fff;font-size:13px;">₹${(i.price * i.qty).toLocaleString('en-IN')}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+
+        <table style="width:100%;font-size:13px;">
+          <tr><td style="color:#888;padding:3px 0;">Subtotal</td><td style="text-align:right;color:#fff;">₹${order.subtotal.toLocaleString('en-IN')}</td></tr>
+          <tr><td style="color:#888;padding:3px 0;">Shipping</td><td style="text-align:right;color:#fff;">${order.shipping === 0 ? 'Free' : '₹' + order.shipping}</td></tr>
+          ${order.discount_amount > 0 ? `<tr><td style="color:#4caf7d;padding:3px 0;">Discount (${order.discount_code})</td><td style="text-align:right;color:#4caf7d;">−₹${order.discount_amount}</td></tr>` : ''}
+          <tr style="border-top:1px solid #2a2520;">
+            <td style="color:#b09060;font-size:16px;font-weight:600;padding:8px 0 0;">Total</td>
+            <td style="text-align:right;color:#b09060;font-size:18px;font-weight:600;padding:8px 0 0;">₹${order.total.toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2a2520;font-size:12px;color:#555;">
+          Payment ID: ${order.payment_id}
+        </div>
+      </div>
     `
   })
 }
