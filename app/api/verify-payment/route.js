@@ -70,8 +70,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Order save failed' }, { status: 500 })
     }
 
-    // 4. Increment discount code usage if applicable
+    // 4. Increment discount code usage + record per-user use
     if (discount_code) {
+      // Increment global used_count
       supabaseAdmin()
         .from('discount_codes')
         .select('used_count')
@@ -85,6 +86,13 @@ export async function POST(req) {
               .eq('code', discount_code)
               .then(() => {})
         })
+      // Record per-user use so they can't use it again
+      if (user_id) {
+        supabaseAdmin()
+          .from('discount_uses')
+          .insert({ code: discount_code, user_id })
+          .then(() => {})
+      }
     }
 
     // 5. Send confirmation email to customer (fire and forget)

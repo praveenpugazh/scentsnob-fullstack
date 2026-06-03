@@ -144,7 +144,7 @@ export default function CheckoutPage() {
     setCouponError('')
     setCouponApplied(null)
     const res = await fetch(
-      `/api/discount?code=${encodeURIComponent(coupon.trim())}&order_value=${grandTotal}`
+      `/api/discount?code=${encodeURIComponent(coupon.trim())}&order_value=${grandTotal}${userId ? `&user_id=${userId}` : ''}`
     )
     const data = await res.json()
     setCouponLoading(false)

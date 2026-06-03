@@ -6,6 +6,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')?.toUpperCase().trim()
   const orderValue = Number(searchParams.get('order_value') || 0)
+  const userId = searchParams.get('user_id') || null
 
   if (!code)
     return NextResponse.json({ error: 'No code provided' }, { status: 400 })
@@ -30,12 +31,27 @@ export async function GET(req) {
       { status: 400 }
     )
 
-  // Check max uses
+  // Check site-wide max uses
   if (data.max_uses !== null && data.used_count >= data.max_uses)
     return NextResponse.json(
       { error: 'This discount code has reached its usage limit' },
       { status: 400 }
     )
+
+  // Check per-user: has this user already used this code?
+  if (userId) {
+    const { data: existingUse } = await supabaseAdmin()
+      .from('discount_uses')
+      .select('id')
+      .eq('code', code)
+      .eq('user_id', userId)
+      .single()
+    if (existingUse)
+      return NextResponse.json(
+        { error: 'You have already used this discount code' },
+        { status: 400 }
+      )
+  }
 
   // Check minimum order
   if (orderValue < data.min_order)
