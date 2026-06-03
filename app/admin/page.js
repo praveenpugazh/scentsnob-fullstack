@@ -2614,6 +2614,415 @@ function PricingTab() {
   )
 }
 
+// ── DISCOUNTS TAB ─────────────────────────────────────────────────────────────
+function DiscountsTab() {
+  const [codes, setCodes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const [form, setForm] = useState({
+    code: '',
+    type: 'percent',
+    value: '',
+    min_order: '',
+    max_uses: '',
+    expires_at: ''
+  })
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    fetch('/api/discounts')
+      .then((r) => r.json())
+      .then((d) => {
+        setCodes(Array.isArray(d) ? d : [])
+        setLoading(false)
+      })
+  }, [])
+
+  const createCode = async () => {
+    if (!form.code || !form.value) return
+    const r = await fetch('/api/discounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    })
+    const created = await r.json()
+    if (created && created.id) {
+      setCodes((c) => [created, ...c])
+      setForm({
+        code: '',
+        type: 'percent',
+        value: '',
+        min_order: '',
+        max_uses: '',
+        expires_at: ''
+      })
+      setShowAdd(false)
+    }
+  }
+
+  const toggleActive = async (dc) => {
+    const r = await fetch(`/api/discount/${dc.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !dc.active })
+    })
+    const updated = await r.json()
+    if (updated?.id)
+      setCodes((c) => c.map((x) => (x.id === dc.id ? updated : x)))
+  }
+
+  const deleteCode = async (id) => {
+    if (!confirm('Delete this discount code?')) return
+    await fetch(`/api/discount/${id}`, { method: 'DELETE' })
+    setCodes((c) => c.filter((x) => x.id !== id))
+  }
+
+  const activeCodes = codes.filter((c) => c.active).length
+
+  return (
+    <div>
+      {/* Stats */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
+          gap: 12,
+          marginBottom: 24
+        }}
+      >
+        {[
+          ['Total Codes', codes.length],
+          ['Active', activeCodes],
+          ['Inactive', codes.length - activeCodes]
+        ].map(([label, val]) => (
+          <div key={label} style={{ ...S.card }}>
+            <div
+              style={{
+                fontSize: 9,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.35)',
+                marginBottom: 6
+              }}
+            >
+              {label}
+            </div>
+            <div
+              style={{
+                fontSize: 22,
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: 300,
+                fontFamily: 'var(--ff-serif)'
+              }}
+            >
+              {val}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 16
+        }}
+      >
+        <button
+          onClick={() => setShowAdd((s) => !s)}
+          style={{
+            ...S.btn,
+            background: '#b09060',
+            color: '#fff',
+            padding: '8px 18px',
+            fontSize: 12,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }}
+        >
+          {showAdd ? 'Cancel' : '+ New Code'}
+        </button>
+      </div>
+
+      {/* Create form */}
+      {showAdd && (
+        <div
+          style={{
+            background: 'rgba(176,144,96,0.05)',
+            border: '0.5px solid rgba(176,144,96,0.2)',
+            borderRadius: 8,
+            padding: '1.25rem',
+            marginBottom: 20
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              color: 'var(--gold)',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              marginBottom: 14
+            }}
+          >
+            New Discount Code
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 12,
+              marginBottom: 12
+            }}
+          >
+            <div>
+              <label style={S.lbl}>Code</label>
+              <input
+                style={S.inp}
+                value={form.code}
+                onChange={(e) => set('code', e.target.value.toUpperCase())}
+                placeholder='LAUNCH10'
+              />
+            </div>
+            <div>
+              <label style={S.lbl}>Type</label>
+              <select
+                style={S.inp}
+                value={form.type}
+                onChange={(e) => set('type', e.target.value)}
+              >
+                <option value='percent'>Percent (%)</option>
+                <option value='fixed'>Fixed (₹)</option>
+              </select>
+            </div>
+            <div>
+              <label style={S.lbl}>
+                {form.type === 'percent' ? 'Discount %' : 'Discount ₹'}
+              </label>
+              <input
+                style={S.inp}
+                type='number'
+                value={form.value}
+                onChange={(e) => set('value', e.target.value)}
+                placeholder={form.type === 'percent' ? '10' : '500'}
+              />
+            </div>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 12,
+              marginBottom: 12
+            }}
+          >
+            <div>
+              <label style={S.lbl}>
+                Min Order (₹){' '}
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  optional
+                </span>
+              </label>
+              <input
+                style={S.inp}
+                type='number'
+                value={form.min_order}
+                onChange={(e) => set('min_order', e.target.value)}
+                placeholder='0'
+              />
+            </div>
+            <div>
+              <label style={S.lbl}>
+                Max Uses{' '}
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  optional
+                </span>
+              </label>
+              <input
+                style={S.inp}
+                type='number'
+                value={form.max_uses}
+                onChange={(e) => set('max_uses', e.target.value)}
+                placeholder='Unlimited'
+              />
+            </div>
+            <div>
+              <label style={S.lbl}>
+                Expires{' '}
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  optional
+                </span>
+              </label>
+              <input
+                style={S.inp}
+                type='date'
+                value={form.expires_at}
+                onChange={(e) => set('expires_at', e.target.value)}
+              />
+            </div>
+          </div>
+          <button
+            onClick={createCode}
+            style={{
+              ...S.btn,
+              background: '#b09060',
+              color: '#fff',
+              padding: '9px 20px',
+              fontSize: 12,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase'
+            }}
+          >
+            Create Code
+          </button>
+        </div>
+      )}
+
+      {/* Codes list */}
+      {loading ? (
+        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
+          Loading...
+        </div>
+      ) : codes.length === 0 ? (
+        <div
+          style={{ textAlign: 'center', padding: '3rem', color: 'var(--t3)' }}
+        >
+          No discount codes yet
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {codes.map((dc) => {
+            const expired =
+              dc.expires_at && new Date(dc.expires_at) < new Date()
+            const maxed = dc.max_uses !== null && dc.used_count >= dc.max_uses
+            const statusColor = !dc.active
+              ? '#555'
+              : expired || maxed
+                ? '#dc5050'
+                : '#4caf7d'
+            const statusLabel = !dc.active
+              ? 'Inactive'
+              : expired
+                ? 'Expired'
+                : maxed
+                  ? 'Maxed out'
+                  : 'Active'
+            return (
+              <div
+                key={dc.id}
+                style={{
+                  ...S.card,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                  opacity: !dc.active ? 0.6 : 1
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      marginBottom: 4
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'var(--ff-serif)',
+                        fontSize: '1.1rem',
+                        color: 'var(--gold)',
+                        letterSpacing: '0.08em'
+                      }}
+                    >
+                      {dc.code}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        padding: '2px 8px',
+                        borderRadius: 3,
+                        background: `${statusColor}18`,
+                        color: statusColor,
+                        border: `0.5px solid ${statusColor}44`,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'rgba(255,255,255,0.5)',
+                      display: 'flex',
+                      gap: 16,
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: 'rgba(255,255,255,0.8)',
+                        fontWeight: 500
+                      }}
+                    >
+                      {dc.type === 'percent'
+                        ? `${dc.value}% off`
+                        : `₹${dc.value} off`}
+                    </span>
+                    {dc.min_order > 0 && <span>Min: ₹{dc.min_order}</span>}
+                    <span>
+                      Used: {dc.used_count}
+                      {dc.max_uses ? ` / ${dc.max_uses}` : ''}
+                    </span>
+                    {dc.expires_at && (
+                      <span>
+                        Expires:{' '}
+                        {new Date(dc.expires_at).toLocaleDateString('en-IN')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button
+                    onClick={() => toggleActive(dc)}
+                    style={{
+                      ...S.btn,
+                      fontSize: 10,
+                      padding: '4px 10px',
+                      background: dc.active
+                        ? 'rgba(220,80,80,0.1)'
+                        : 'rgba(76,175,125,0.1)',
+                      color: dc.active ? '#dc5050' : '#4caf7d',
+                      border: `0.5px solid ${dc.active ? 'rgba(220,80,80,0.2)' : 'rgba(76,175,125,0.2)'}`
+                    }}
+                  >
+                    {dc.active ? 'Disable' : 'Enable'}
+                  </button>
+                  <button
+                    onClick={() => deleteCode(dc.id)}
+                    style={{
+                      ...S.btn,
+                      fontSize: 10,
+                      padding: '4px 8px',
+                      background: 'rgba(220,80,80,0.1)',
+                      color: '#dc5050',
+                      border: '0.5px solid rgba(220,80,80,0.2)'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── ADMIN AUTH + SHELL ────────────────────────────────────────────────────────
 export default function AdminPage() {
   const router = useRouter()
@@ -2956,7 +3365,8 @@ export default function AdminPage() {
             ['products', 'Products'],
             ['partials', 'Partials'],
             ['stock', 'Stock'],
-            ['pricing', 'Pricing']
+            ['pricing', 'Pricing'],
+            ['discounts', 'Discounts']
           ].map(([id, label]) => (
             <button
               key={id}
@@ -2984,6 +3394,7 @@ export default function AdminPage() {
         {tab === 'partials' && <PartialsTab />}
         {tab === 'stock' && <StockTab />}
         {tab === 'pricing' && <PricingTab />}
+        {tab === 'discounts' && <DiscountsTab />}
       </div>
     </div>
   )

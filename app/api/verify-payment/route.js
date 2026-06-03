@@ -16,7 +16,9 @@ export async function POST(req) {
       subtotal,
       shipping,
       total,
-      user_id
+      user_id,
+      discount_code = null,
+      discount_amount = 0
     } = await req.json()
 
     // 1. Verify signature
@@ -51,7 +53,9 @@ export async function POST(req) {
       total,
       status: 'Paid',
       payment_id: razorpay_payment_id,
-      razorpay_order_id
+      razorpay_order_id,
+      discount_code,
+      discount_amount
     }
     if (user_id) insertData.user_id = user_id
 
@@ -66,12 +70,29 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Order save failed' }, { status: 500 })
     }
 
-    // 4. Send confirmation email to customer (fire and forget)
+    // 4. Increment discount code usage if applicable
+    if (discount_code) {
+      supabaseAdmin()
+        .from('discount_codes')
+        .select('used_count')
+        .eq('code', discount_code)
+        .single()
+        .then(({ data: dc }) => {
+          if (dc)
+            supabaseAdmin()
+              .from('discount_codes')
+              .update({ used_count: (dc.used_count || 0) + 1 })
+              .eq('code', discount_code)
+              .then(() => {})
+        })
+    }
+
+    // 5. Send confirmation email to customer (fire and forget)
     sendOrderConfirmation(order, items).catch((e) =>
       console.error('Email error:', e)
     )
 
-    // 5. WhatsApp notification to you (fire and forget)
+    // 6. WhatsApp notification to you (fire and forget)
     const waMsg = buildWANotification(order, items)
     fetch(
       `https://api.whatsapp.com/send?phone=918754519509&text=${encodeURIComponent(waMsg)}`

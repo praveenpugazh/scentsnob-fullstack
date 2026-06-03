@@ -43,9 +43,13 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState({})
   const [userId, setUserId] = useState(null)
   const [paying, setPaying] = useState(false)
+  const [coupon, setCoupon] = useState('')
+  const [couponApplied, setCouponApplied] = useState(null) // { code, discount_amount, message }
+  const [couponError, setCouponError] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
   const [done, setDone] = useState(null) // confirmed order
   const [wheelPrize, setWheelPrize] = useState(null)
-  const [showWheel, setShowWheel] = useState(false)
+  const [showWheel, setShowWheel] = useState(true) // TEMP for testing — change back to false
   const [products, setProducts] = useState([])
 
   // Address fields — 4 lines
@@ -134,6 +138,32 @@ export default function CheckoutPage() {
     return e
   }
 
+  const applyCoupon = async () => {
+    if (!coupon.trim()) return
+    setCouponLoading(true)
+    setCouponError('')
+    setCouponApplied(null)
+    const res = await fetch(
+      `/api/discount?code=${encodeURIComponent(coupon.trim())}&order_value=${grandTotal}`
+    )
+    const data = await res.json()
+    setCouponLoading(false)
+    if (!res.ok) {
+      setCouponError(data.error || 'Invalid code')
+      return
+    }
+    setCouponApplied(data)
+  }
+
+  const removeCoupon = () => {
+    setCouponApplied(null)
+    setCoupon('')
+    setCouponError('')
+  }
+
+  const discountAmount = couponApplied?.discount_amount || 0
+  const finalTotal = Math.max(0, grandTotal - discountAmount)
+
   const handlePay = async () => {
     const e = validate()
     if (Object.keys(e).length > 0) {
@@ -204,7 +234,9 @@ export default function CheckoutPage() {
             items: items.map(([, v]) => v),
             subtotal,
             shipping,
-            total: grandTotal,
+            total: finalTotal,
+            discount_code: couponApplied?.code || null,
+            discount_amount: discountAmount,
             user_id: userId || undefined
           })
         })
@@ -813,6 +845,96 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Coupon code */}
+            <div style={{ marginTop: 24 }}>
+              <label style={lbl}>
+                Discount Code{' '}
+                <span
+                  style={{
+                    color: 'rgba(255,255,255,0.25)',
+                    fontWeight: 400,
+                    textTransform: 'none',
+                    letterSpacing: 0
+                  }}
+                >
+                  optional
+                </span>
+              </label>
+              {couponApplied ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 14px',
+                    background: 'rgba(76,175,125,0.08)',
+                    border: '0.5px solid rgba(76,175,125,0.3)',
+                    borderRadius: 6
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: '#4caf7d', flex: 1 }}>
+                    ✓ {couponApplied.message} — saving{' '}
+                    {formatINR(discountAmount)}
+                  </span>
+                  <button
+                    onClick={removeCoupon}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'rgba(255,255,255,0.4)',
+                      cursor: 'pointer',
+                      fontSize: 16
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    style={{
+                      ...inp(false),
+                      flex: 1,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em'
+                    }}
+                    value={coupon}
+                    onChange={(e) => {
+                      setCoupon(e.target.value.toUpperCase())
+                      setCouponError('')
+                    }}
+                    placeholder='ENTER CODE'
+                    onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={couponLoading || !coupon.trim()}
+                    style={{
+                      padding: '11px 16px',
+                      borderRadius: 6,
+                      background: 'rgba(176,144,96,0.15)',
+                      border: '0.5px solid rgba(176,144,96,0.3)',
+                      color: 'var(--gold)',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                      fontFamily: 'var(--ff-sans)'
+                    }}
+                  >
+                    {couponLoading ? '...' : 'Apply'}
+                  </button>
+                </div>
+              )}
+              {couponError && (
+                <p style={{ fontSize: 12, color: '#e05a5a', marginTop: 6 }}>
+                  {couponError}
+                </p>
+              )}
+            </div>
+
             {/* Pay button */}
             <div style={{ marginTop: 32 }}>
               {submitErr && (
@@ -851,7 +973,7 @@ export default function CheckoutPage() {
               >
                 {paying
                   ? 'Opening Payment Gateway...'
-                  : `Pay Securely · ${formatINR(grandTotal)}`}
+                  : `Pay Securely · ${formatINR(finalTotal)}`}
               </button>
               <p
                 style={{
