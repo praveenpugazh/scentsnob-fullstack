@@ -42,7 +42,7 @@ export default function ProductCard({
       : category === 'designer'
         ? 'rgba(100,130,200,0.15)'
         : 'rgba(100,100,100,0.15)'
-  const sizePrice = { '5ml': p5, '10ml': p10, '20ml': p20 }
+  const sizePrice = { '5ml': p5, '10ml': p10, '20ml': p20, '30ml': product.p30 }
 
   const handleAdd = () => {
     const price = sizePrice[selectedSize]
@@ -268,11 +268,17 @@ export default function ProductCard({
                   </span>
                 </div>
               )}
-              {p10 > 0 && (
+              {product.p30 > 0 ? (
                 <div style={{ fontSize: 11, color: 'var(--t3)' }}>
-                  20ml {formatINR(p20 || Math.round((p10 * 1.8) / 10) * 10)} ·
-                  Best value
+                  30ml {formatINR(product.p30)} · Best value
                 </div>
+              ) : (
+                p10 > 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>
+                    20ml {formatINR(p20 || Math.round((p10 * 1.8) / 10) * 10)} ·
+                    Best value
+                  </div>
+                )
               )}
             </div>
             {!sold_out && (
@@ -360,7 +366,8 @@ export default function ProductCard({
               {[
                 ['5ml', p5],
                 ['10ml', p10],
-                ['20ml', p20 || Math.round((p10 * 1.8) / 10) * 10]
+                ['20ml', p20 || Math.round((p10 * 1.8) / 10) * 10],
+                ['30ml', product.p30]
               ].map(
                 ([size, price]) =>
                   price > 0 && (

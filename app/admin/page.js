@@ -908,6 +908,7 @@ function ProductsTab() {
     p5: 0,
     p10: 0,
     p20: 0,
+    p30: 0,
     image_url: '',
     mrp: null
   })
@@ -928,8 +929,8 @@ function ProductsTab() {
 
   const recalc = (paid, ml) => {
     if (paid && ml) {
-      const { p5, p10, p20 } = calcPrices(Number(paid), Number(ml))
-      setForm((f) => ({ ...f, p5, p10, p20, _autoCalc: true }))
+      const { p5, p10, p20, p30 } = calcPrices(Number(paid), Number(ml))
+      setForm((f) => ({ ...f, p5, p10, p20, p30, _autoCalc: true }))
     }
   }
 
@@ -1051,6 +1052,7 @@ function ProductsTab() {
       p5: p.p5 != null ? p.p5 : 0,
       p10: p.p10 != null ? p.p10 : 0,
       p20: p.p20 != null ? p.p20 : 0,
+      p30: p.p30 != null ? p.p30 : 0,
       image_url: p.image_url || '',
       mrp: p.mrp != null ? p.mrp : null
     })
@@ -1320,7 +1322,8 @@ function ProductsTab() {
                 {[
                   ['p5', '5ml'],
                   ['p10', '10ml'],
-                  ['p20', '20ml']
+                  ['p20', '20ml'],
+                  ['p30', '30ml']
                 ].map(([k, l]) => (
                   <div key={k}>
                     <label style={S.lbl}>{l} Price (₹)</label>
@@ -2576,14 +2579,15 @@ function PricingTab() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
+            gridTemplateColumns: '1fr 1fr 1fr 1fr',
             gap: 12
           }}
         >
           {[
             ['5ml', result.p5],
             ['10ml', result.p10],
-            ['20ml', result.p20]
+            ['20ml', result.p20],
+            ['30ml', result.p30]
           ].map(([size, price]) => (
             <div key={size} style={{ ...S.card, textAlign: 'center' }}>
               <div
@@ -2638,14 +2642,23 @@ function DiscountsTab() {
       })
   }, [])
 
+  const [createError, setCreateError] = useState('')
+
   const createCode = async () => {
     if (!form.code || !form.value) return
+    setCreateError('')
     const r = await fetch('/api/discounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)
     })
     const created = await r.json()
+    if (!r.ok) {
+      setCreateError(
+        created.error?.message || created.error || 'Failed to create code'
+      )
+      return
+    }
     if (created && created.id) {
       setCodes((c) => [created, ...c])
       setForm({
@@ -2657,6 +2670,7 @@ function DiscountsTab() {
         expires_at: ''
       })
       setShowAdd(false)
+      setCreateError('')
     }
   }
 
@@ -2853,13 +2867,19 @@ function DiscountsTab() {
                 </span>
               </label>
               <input
-                style={S.inp}
+                style={{ ...S.inp, colorScheme: 'dark' }}
                 type='date'
                 value={form.expires_at}
                 onChange={(e) => set('expires_at', e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
           </div>
+          {createError && (
+            <div style={{ fontSize: 12, color: '#e05a5a', marginBottom: 8 }}>
+              {createError}
+            </div>
+          )}
           <button
             onClick={createCode}
             style={{
