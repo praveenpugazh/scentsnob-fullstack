@@ -264,7 +264,7 @@ export default function Home() {
       {/* Announcement bar */}
       <div
         style={{
-          background: '#0e0c0a',
+          background: 'var(--bg2)',
           borderBottom: '0.5px solid var(--w05)',
           padding: '7px 0',
           textAlign: 'center',
