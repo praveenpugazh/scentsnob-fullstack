@@ -8,9 +8,9 @@ import ProductCard from '@/components/ProductCard'
 
 const STATUS_COLORS = {
   Pending: {
-    bg: 'rgba(176,144,96,0.12)',
+    bg: 'var(--gold-12)',
     color: '#b09060',
-    border: 'rgba(176,144,96,0.3)'
+    border: 'var(--gold-30)'
   },
   Paid: {
     bg: 'rgba(100,160,255,0.1)',
@@ -29,7 +29,7 @@ const STATUS_COLORS = {
   },
   Cancelled: {
     bg: 'rgba(220,80,80,0.1)',
-    color: '#e05a5a',
+    color: 'var(--red)',
     border: 'rgba(220,80,80,0.3)'
   }
 }
@@ -168,7 +168,7 @@ export default function AccountPage() {
             fontWeight: 500,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.9)'
+            color: 'var(--w90)'
           }}
         >
           Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
@@ -221,8 +221,8 @@ export default function AccountPage() {
               width: 52,
               height: 52,
               borderRadius: '50%',
-              background: 'rgba(176,144,96,0.15)',
-              border: '0.5px solid rgba(176,144,96,0.3)',
+              background: 'var(--gold-15)',
+              border: '0.5px solid var(--gold-30)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -290,7 +290,7 @@ export default function AccountPage() {
                 <span
                   style={{
                     fontSize: 10,
-                    background: 'rgba(176,144,96,0.2)',
+                    background: 'var(--gold-20)',
                     color: 'var(--gold)',
                     padding: '1px 7px',
                     borderRadius: 10
@@ -459,7 +459,7 @@ export default function AccountPage() {
                                 padding: '8px 0',
                                 borderBottom:
                                   i < order.items.length - 1
-                                    ? '0.5px solid rgba(255,255,255,0.04)'
+                                    ? '0.5px solid var(--w04)'
                                     : 'none'
                               }}
                             >
@@ -504,7 +504,7 @@ export default function AccountPage() {
                         </div>
                         <div
                           style={{
-                            background: 'rgba(255,255,255,0.02)',
+                            background: 'var(--w02)',
                             borderRadius: 6,
                             padding: '10px 12px',
                             fontSize: 12,

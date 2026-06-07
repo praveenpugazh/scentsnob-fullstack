@@ -32,7 +32,9 @@ function loadRazorpay() {
 
 function FieldError({ msg }) {
   if (!msg) return null
-  return <p style={{ fontSize: 11, color: '#e05a5a', marginTop: 4 }}>{msg}</p>
+  return (
+    <p style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{msg}</p>
+  )
 }
 
 export default function CheckoutPage() {
@@ -49,7 +51,7 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false)
   const [done, setDone] = useState(null) // confirmed order
   const [wheelPrize, setWheelPrize] = useState(null)
-  const [showWheel, setShowWheel] = useState(true) // TEMP for testing — change back to false
+  const [showWheel, setShowWheel] = useState(false)
   const [products, setProducts] = useState([])
 
   // Address fields — 4 lines
@@ -62,6 +64,7 @@ export default function CheckoutPage() {
 
   // Validation errors
   const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
   const [submitErr, setSubmitErr] = useState('')
 
   // Load products for wheel
@@ -138,6 +141,14 @@ export default function CheckoutPage() {
     return e
   }
 
+  const touch = (field) => {
+    setTouched((t) => ({ ...t, [field]: true }))
+    const e = validate()
+    setErrors((prev) => ({ ...prev, [field]: e[field] || '' }))
+  }
+
+  const isFormValid = Object.keys(validate()).length === 0
+
   const applyCoupon = async () => {
     if (!coupon.trim()) return
     setCouponLoading(true)
@@ -163,6 +174,33 @@ export default function CheckoutPage() {
 
   const discountAmount = couponApplied?.discount_amount || 0
   const finalTotal = Math.max(0, grandTotal - discountAmount)
+
+  const handleWhatsApp = () => {
+    if (!validate()) return
+    const lines = items.map(([, item]) => {
+      const label = item.isPartial
+        ? `${item.brand} ${item.name} (Partial)`
+        : `${item.brand} ${item.name} ${item.size}`
+      return `• ${label} × ${item.qty} — ${formatINR(item.price * item.qty)}`
+    })
+    const fullAddress = [line1, line2, line3, pincode]
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(', ')
+    let msg = `Hi Scent Snob! I'd like to place an order 🛒\n\n`
+    msg += lines.join('\n')
+    msg += `\n\nSubtotal: ${formatINR(subtotal)}`
+    msg += `\nShipping: ${shipping === 0 ? 'Free' : formatINR(shipping)}`
+    if (couponApplied) {
+      msg += `\nDiscount (${couponApplied.code}): − ${formatINR(discountAmount)}`
+    }
+    msg += `\n*Total: ${formatINR(finalTotal)}*`
+    msg += `\n\nName: ${name.trim()}`
+    msg += `\nPhone: ${phone.trim()}`
+    msg += `\nAddress: ${fullAddress}`
+    const encoded = encodeURIComponent(msg)
+    window.open(`https://wa.me/918754519509?text=${encoded}`, '_blank')
+  }
 
   const handlePay = async () => {
     const e = validate()
@@ -251,31 +289,51 @@ export default function CheckoutPage() {
         // Clear cart
         sessionStorage.removeItem('ssd_cart')
         setDone(verifyData.order)
+        if (finalTotal >= 5000) setShowWheel(true)
       }
     }
 
     new window.Razorpay(options).open()
   }
 
-  const inp = (hasErr) => ({
-    width: '100%',
-    boxSizing: 'border-box',
-    background: 'rgba(255,255,255,0.04)',
-    border: `0.5px solid ${hasErr ? '#e05a5a' : 'rgba(255,255,255,0.12)'}`,
-    borderRadius: 6,
-    padding: '11px 14px',
-    fontFamily: 'var(--ff-sans)',
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    outline: 'none',
-    transition: 'border-color .2s'
-  })
+  const inp = (hasErr, fieldName) => {
+    const isValid =
+      fieldName &&
+      touched[fieldName] &&
+      !hasErr &&
+      (fieldName === 'phone'
+        ? phone.replace(/\D/g, '').length === 10
+        : fieldName === 'pincode'
+          ? /^\d{6}$/.test(pincode.trim())
+          : fieldName === 'name'
+            ? name.trim().length > 0
+            : fieldName === 'line1'
+              ? line1.trim().length > 0
+              : fieldName === 'line2'
+                ? line2.trim().length > 0
+                : fieldName === 'line3'
+                  ? line3.trim().length > 0
+                  : false)
+    return {
+      width: '100%',
+      boxSizing: 'border-box',
+      background: 'var(--w04)',
+      border: `0.5px solid ${hasErr ? 'var(--red)' : isValid ? 'rgba(76,175,125,0.6)' : 'var(--w12)'}`,
+      borderRadius: 6,
+      padding: '11px 14px',
+      fontFamily: 'var(--ff-sans)',
+      fontSize: 14,
+      color: 'var(--w90)',
+      outline: 'none',
+      transition: 'border-color .2s'
+    }
+  }
 
   const lbl = {
     fontSize: 11,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.4)',
+    color: 'var(--w40)',
     display: 'block',
     marginBottom: 6
   }
@@ -315,7 +373,7 @@ export default function CheckoutPage() {
                 height: 72,
                 borderRadius: '50%',
                 background: 'rgba(76,175,125,0.12)',
-                border: '0.5px solid rgba(76,175,125,0.3)',
+                border: '0.5px solid var(--green-br)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -344,8 +402,8 @@ export default function CheckoutPage() {
           {/* Order card */}
           <div
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '0.5px solid rgba(255,255,255,0.08)',
+              background: 'var(--w02)',
+              border: '0.5px solid var(--w08)',
               borderRadius: 10,
               padding: '1.5rem',
               marginBottom: 20
@@ -387,8 +445,8 @@ export default function CheckoutPage() {
                   padding: '4px 10px',
                   borderRadius: 20,
                   background: 'rgba(76,175,125,0.12)',
-                  color: '#4caf7d',
-                  border: '0.5px solid rgba(76,175,125,0.3)',
+                  color: 'var(--green-txt)',
+                  border: '0.5px solid var(--green-br)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase'
                 }}
@@ -400,7 +458,7 @@ export default function CheckoutPage() {
             {/* Items */}
             <div
               style={{
-                borderTop: '0.5px solid rgba(255,255,255,0.06)',
+                borderTop: '0.5px solid var(--w06)',
                 paddingTop: 14,
                 marginBottom: 14
               }}
@@ -449,7 +507,7 @@ export default function CheckoutPage() {
             {/* Totals */}
             <div
               style={{
-                borderTop: '0.5px solid rgba(255,255,255,0.06)',
+                borderTop: '0.5px solid var(--w06)',
                 paddingTop: 12
               }}
             >
@@ -477,7 +535,8 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span
                   style={{
-                    color: done.shipping === 0 ? '#4caf7d' : 'var(--t3)'
+                    color:
+                      done.shipping === 0 ? 'var(--green-txt)' : 'var(--t3)'
                   }}
                 >
                   {done.shipping === 0 ? 'Free' : formatINR(done.shipping)}
@@ -504,7 +563,7 @@ export default function CheckoutPage() {
               style={{
                 marginTop: 14,
                 paddingTop: 14,
-                borderTop: '0.5px solid rgba(255,255,255,0.06)',
+                borderTop: '0.5px solid var(--w06)',
                 fontSize: 12,
                 color: 'var(--t3)',
                 lineHeight: 1.8
@@ -515,7 +574,7 @@ export default function CheckoutPage() {
                   fontSize: 10,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.25)',
+                  color: 'var(--w25)',
                   marginBottom: 6
                 }}
               >
@@ -533,7 +592,7 @@ export default function CheckoutPage() {
               style={{
                 marginTop: 10,
                 fontSize: 10,
-                color: 'rgba(255,255,255,0.18)'
+                color: 'var(--w18)'
               }}
             >
               Payment ID: {done.payment_id}
@@ -551,8 +610,8 @@ export default function CheckoutPage() {
           {wheelPrize && !showWheel && (
             <div
               style={{
-                background: 'rgba(176,144,96,0.08)',
-                border: '0.5px solid rgba(176,144,96,0.25)',
+                background: 'var(--gold-08)',
+                border: '0.5px solid var(--gold-25)',
                 borderRadius: 8,
                 padding: '12px 16px',
                 marginBottom: 16,
@@ -642,7 +701,7 @@ export default function CheckoutPage() {
             fontWeight: 500,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.9)'
+            color: 'var(--w90)'
           }}
         >
           Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
@@ -746,12 +805,13 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>Full Name</label>
                   <input
-                    style={inp(errors.name)}
+                    style={inp(errors.name, 'name')}
                     value={name}
                     onChange={(e) => {
                       setName(e.target.value)
                       setErrors((v) => ({ ...v, name: '' }))
                     }}
+                    onBlur={() => touch('name')}
                     placeholder='Priya Sharma'
                   />
                   <FieldError msg={errors.name} />
@@ -759,7 +819,7 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>Phone Number</label>
                   <input
-                    style={inp(errors.phone)}
+                    style={inp(errors.phone, 'phone')}
                     type='tel'
                     value={phone}
                     onChange={(e) => {
@@ -767,6 +827,7 @@ export default function CheckoutPage() {
                       setPhone(val)
                       setErrors((v) => ({ ...v, phone: '' }))
                     }}
+                    onBlur={() => touch('phone')}
                     placeholder='9876543210'
                     maxLength={10}
                   />
@@ -778,12 +839,13 @@ export default function CheckoutPage() {
               <div>
                 <label style={lbl}>Flat / House No. & Street</label>
                 <input
-                  style={inp(errors.line1)}
+                  style={inp(errors.line1, 'line1')}
                   value={line1}
                   onChange={(e) => {
                     setLine1(e.target.value)
                     setErrors((v) => ({ ...v, line1: '' }))
                   }}
+                  onBlur={() => touch('line1')}
                   placeholder='12A, MG Road'
                 />
                 <FieldError msg={errors.line1} />
@@ -793,12 +855,13 @@ export default function CheckoutPage() {
               <div>
                 <label style={lbl}>Area / Locality</label>
                 <input
-                  style={inp(errors.line2)}
+                  style={inp(errors.line2, 'line2')}
                   value={line2}
                   onChange={(e) => {
                     setLine2(e.target.value)
                     setErrors((v) => ({ ...v, line2: '' }))
                   }}
+                  onBlur={() => touch('line2')}
                   placeholder='Koramangala'
                 />
                 <FieldError msg={errors.line2} />
@@ -815,12 +878,13 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>City & State</label>
                   <input
-                    style={inp(errors.line3)}
+                    style={inp(errors.line3, 'line3')}
                     value={line3}
                     onChange={(e) => {
                       setLine3(e.target.value)
                       setErrors((v) => ({ ...v, line3: '' }))
                     }}
+                    onBlur={() => touch('line3')}
                     placeholder='Bengaluru, Karnataka'
                   />
                   <FieldError msg={errors.line3} />
@@ -828,7 +892,7 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>PIN Code</label>
                   <input
-                    style={inp(errors.pincode)}
+                    style={inp(errors.pincode, 'pincode')}
                     type='text'
                     inputMode='numeric'
                     maxLength={6}
@@ -838,6 +902,7 @@ export default function CheckoutPage() {
                       setPincode(val)
                       setErrors((v) => ({ ...v, pincode: '' }))
                     }}
+                    onBlur={() => touch('pincode')}
                     placeholder='560034'
                   />
                   <FieldError msg={errors.pincode} />
@@ -845,13 +910,27 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Form completion hint */}
+            {!isFormValid && Object.values(touched).some(Boolean) && (
+              <p
+                style={{
+                  fontSize: 11,
+                  color: 'var(--w30)',
+                  marginTop: 16,
+                  lineHeight: 1.6
+                }}
+              >
+                ↑ Fill in all fields above to enable checkout
+              </p>
+            )}
+
             {/* Coupon code */}
             <div style={{ marginTop: 24 }}>
               <label style={lbl}>
                 Discount Code{' '}
                 <span
                   style={{
-                    color: 'rgba(255,255,255,0.25)',
+                    color: 'var(--w25)',
                     fontWeight: 400,
                     textTransform: 'none',
                     letterSpacing: 0
@@ -867,12 +946,14 @@ export default function CheckoutPage() {
                     alignItems: 'center',
                     gap: 10,
                     padding: '10px 14px',
-                    background: 'rgba(76,175,125,0.08)',
-                    border: '0.5px solid rgba(76,175,125,0.3)',
+                    background: 'var(--green-bg)',
+                    border: '0.5px solid var(--green-br)',
                     borderRadius: 6
                   }}
                 >
-                  <span style={{ fontSize: 12, color: '#4caf7d', flex: 1 }}>
+                  <span
+                    style={{ fontSize: 12, color: 'var(--green-txt)', flex: 1 }}
+                  >
                     ✓ {couponApplied.message} — saving{' '}
                     {formatINR(discountAmount)}
                   </span>
@@ -881,7 +962,7 @@ export default function CheckoutPage() {
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--w40)',
                       cursor: 'pointer',
                       fontSize: 16
                     }}
@@ -912,8 +993,8 @@ export default function CheckoutPage() {
                     style={{
                       padding: '11px 16px',
                       borderRadius: 6,
-                      background: 'rgba(176,144,96,0.15)',
-                      border: '0.5px solid rgba(176,144,96,0.3)',
+                      background: 'var(--gold-15)',
+                      border: '0.5px solid var(--gold-30)',
                       color: 'var(--gold)',
                       cursor: 'pointer',
                       fontSize: 12,
@@ -929,7 +1010,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               {couponError && (
-                <p style={{ fontSize: 12, color: '#e05a5a', marginTop: 6 }}>
+                <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>
                   {couponError}
                 </p>
               )}
@@ -940,26 +1021,99 @@ export default function CheckoutPage() {
               {submitErr && (
                 <div
                   style={{
-                    background: 'rgba(220,80,80,0.08)',
-                    border: '0.5px solid rgba(220,80,80,0.2)',
+                    background: 'var(--red-bg)',
+                    border: '0.5px solid var(--red-br)',
                     borderRadius: 6,
                     padding: '10px 14px',
                     marginBottom: 14,
                     fontSize: 13,
-                    color: '#e05a5a'
+                    color: 'var(--red)'
                   }}
                 >
                   {submitErr}
                 </div>
               )}
+
+              {/* WhatsApp option */}
               <button
-                onClick={handlePay}
-                disabled={paying}
+                onClick={handleWhatsApp}
+                disabled={!isFormValid}
+                title={
+                  !isFormValid ? 'Please fill in all delivery details' : ''
+                }
                 style={{
                   width: '100%',
                   padding: '15px',
                   borderRadius: 6,
-                  background: paying ? 'rgba(176,144,96,0.5)' : '#b09060',
+                  background: isFormValid ? '#25D366' : 'rgba(37,211,102,0.3)',
+                  border: 'none',
+                  color: '#fff',
+                  fontFamily: 'var(--ff-sans)',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  cursor: isFormValid ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginBottom: 10,
+                  transition: 'all .2s'
+                }}
+              >
+                <svg
+                  width='18'
+                  height='18'
+                  viewBox='0 0 24 24'
+                  fill='currentColor'
+                >
+                  <path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' />
+                </svg>
+                Order via WhatsApp
+              </button>
+
+              {/* Divider */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  marginBottom: 10
+                }}
+              >
+                <div
+                  style={{ flex: 1, height: '0.5px', background: 'var(--w08)' }}
+                />
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--t3)',
+                    letterSpacing: '0.08em'
+                  }}
+                >
+                  OR PAY ONLINE
+                </span>
+                <div
+                  style={{ flex: 1, height: '0.5px', background: 'var(--w08)' }}
+                />
+              </div>
+
+              <button
+                onClick={handlePay}
+                disabled={paying || !isFormValid}
+                title={
+                  !isFormValid ? 'Please fill in all delivery details' : ''
+                }
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  borderRadius: 6,
+                  background: !isFormValid
+                    ? 'var(--gold-30)'
+                    : paying
+                      ? 'var(--gold-50)'
+                      : '#b09060',
                   border: 'none',
                   color: '#fff',
                   fontFamily: 'var(--ff-sans)',
@@ -967,7 +1121,7 @@ export default function CheckoutPage() {
                   fontWeight: 500,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  cursor: paying ? 'not-allowed' : 'pointer',
+                  cursor: paying || !isFormValid ? 'not-allowed' : 'pointer',
                   transition: 'all .2s'
                 }}
               >
@@ -993,8 +1147,8 @@ export default function CheckoutPage() {
           <div style={{ position: 'sticky', top: 72 }}>
             <div
               style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '0.5px solid rgba(255,255,255,0.08)',
+                background: 'var(--w02)',
+                border: '0.5px solid var(--w08)',
                 borderRadius: 10,
                 padding: '1.5rem'
               }}
@@ -1031,7 +1185,7 @@ export default function CheckoutPage() {
                       alignItems: 'flex-start',
                       marginBottom: 14,
                       paddingBottom: 14,
-                      borderBottom: '0.5px solid rgba(255,255,255,0.05)'
+                      borderBottom: '0.5px solid var(--w05)'
                     }}
                   >
                     {/* Qty badge */}
@@ -1040,8 +1194,8 @@ export default function CheckoutPage() {
                         width: 32,
                         height: 32,
                         borderRadius: 4,
-                        background: 'rgba(176,144,96,0.12)',
-                        border: '0.5px solid rgba(176,144,96,0.2)',
+                        background: 'var(--gold-12)',
+                        border: '0.5px solid var(--gold-20)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1097,8 +1251,8 @@ export default function CheckoutPage() {
               {shipping > 0 && !hasOnlyPartials && (
                 <div
                   style={{
-                    background: 'rgba(176,144,96,0.05)',
-                    border: '0.5px solid rgba(176,144,96,0.12)',
+                    background: 'var(--gold-05)',
+                    border: '0.5px solid var(--gold-12)',
                     borderRadius: 4,
                     padding: '8px 12px',
                     marginBottom: 12,
@@ -1113,8 +1267,8 @@ export default function CheckoutPage() {
               {hasOnlyPartials && (
                 <div
                   style={{
-                    background: 'rgba(176,144,96,0.05)',
-                    border: '0.5px solid rgba(176,144,96,0.12)',
+                    background: 'var(--gold-05)',
+                    border: '0.5px solid var(--gold-12)',
                     borderRadius: 4,
                     padding: '8px 12px',
                     marginBottom: 12,
@@ -1129,7 +1283,7 @@ export default function CheckoutPage() {
               {/* Totals */}
               <div
                 style={{
-                  borderTop: '0.5px solid rgba(255,255,255,0.07)',
+                  borderTop: '0.5px solid var(--w07)',
                   paddingTop: 14
                 }}
               >
@@ -1156,7 +1310,9 @@ export default function CheckoutPage() {
                 >
                   <span>Shipping</span>
                   <span
-                    style={{ color: shipping === 0 ? '#4caf7d' : 'var(--t3)' }}
+                    style={{
+                      color: shipping === 0 ? 'var(--green-txt)' : 'var(--t3)'
+                    }}
                   >
                     {shipping === 0 ? 'Free 🎉' : formatINR(shipping)}
                   </span>
@@ -1167,7 +1323,7 @@ export default function CheckoutPage() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       fontSize: 13,
-                      color: '#4caf7d',
+                      color: 'var(--green-txt)',
                       marginBottom: 14
                     }}
                   >
@@ -1183,7 +1339,7 @@ export default function CheckoutPage() {
                     fontSize: '1.3rem',
                     color: 'var(--t1)',
                     paddingTop: 10,
-                    borderTop: '0.5px solid rgba(255,255,255,0.07)'
+                    borderTop: '0.5px solid var(--w07)'
                   }}
                 >
                   <span>Total</span>
@@ -1212,7 +1368,7 @@ export default function CheckoutPage() {
                 style={{
                   marginTop: 18,
                   paddingTop: 14,
-                  borderTop: '0.5px solid rgba(255,255,255,0.05)',
+                  borderTop: '0.5px solid var(--w05)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 6
@@ -1238,7 +1394,7 @@ export default function CheckoutPage() {
                 padding: '10px',
                 borderRadius: 6,
                 background: 'none',
-                border: '0.5px solid rgba(255,255,255,0.08)',
+                border: '0.5px solid var(--w08)',
                 color: 'var(--t3)',
                 fontFamily: 'var(--ff-sans)',
                 fontSize: 12,

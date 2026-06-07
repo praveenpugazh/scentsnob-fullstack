@@ -44,8 +44,8 @@ export default function CartDrawer({
     bottom: 0,
     width: '100%',
     maxWidth: 420,
-    background: '#0e0c0a',
-    borderLeft: '0.5px solid rgba(255,255,255,0.08)',
+    background: 'var(--bg2)',
+    borderLeft: '0.5px solid var(--w08)',
     transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
     transition: 'transform .3s cubic-bezier(.4,0,.2,1)',
     zIndex: 201,
@@ -61,7 +61,7 @@ export default function CartDrawer({
         <div
           style={{
             padding: '1.25rem 1.5rem',
-            borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+            borderBottom: '0.5px solid var(--w07)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -140,7 +140,7 @@ export default function CartDrawer({
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '12px 0',
-                    borderBottom: '0.5px solid rgba(255,255,255,0.05)'
+                    borderBottom: '0.5px solid var(--w05)'
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -187,8 +187,8 @@ export default function CartDrawer({
                           width: 26,
                           height: 26,
                           borderRadius: '50%',
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '0.5px solid rgba(255,255,255,0.1)',
+                          background: 'var(--w06)',
+                          border: '0.5px solid var(--w10)',
                           color: 'var(--t2)',
                           cursor: 'pointer',
                           fontSize: 16,
@@ -215,8 +215,8 @@ export default function CartDrawer({
                           width: 26,
                           height: 26,
                           borderRadius: '50%',
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '0.5px solid rgba(255,255,255,0.1)',
+                          background: 'var(--w06)',
+                          border: '0.5px solid var(--w10)',
                           color: 'var(--t2)',
                           cursor: 'pointer',
                           fontSize: 16,
@@ -248,7 +248,7 @@ export default function CartDrawer({
             <div
               style={{
                 padding: '1rem 1.5rem',
-                borderTop: '0.5px solid rgba(255,255,255,0.07)',
+                borderTop: '0.5px solid var(--w07)',
                 flexShrink: 0
               }}
             >
@@ -275,7 +275,9 @@ export default function CartDrawer({
               >
                 <span>Shipping</span>
                 <span
-                  style={{ color: shipping === 0 ? '#4caf7d' : 'var(--t3)' }}
+                  style={{
+                    color: shipping === 0 ? 'var(--green-txt)' : 'var(--t3)'
+                  }}
                 >
                   {shipping === 0 ? 'Free' : formatINR(shipping)}
                 </span>
@@ -304,7 +306,7 @@ export default function CartDrawer({
                   color: 'var(--t1)',
                   marginBottom: 16,
                   paddingTop: 10,
-                  borderTop: '0.5px solid rgba(255,255,255,0.07)'
+                  borderTop: '0.5px solid var(--w07)'
                 }}
               >
                 <span>Total</span>

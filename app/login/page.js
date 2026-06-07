@@ -1,161 +1,409 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createBrowserSupabase } from '@/lib/supabase';
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createBrowserSupabase } from '@/lib/supabase'
 
 export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createBrowserSupabase();
+  const router = useRouter()
+  const supabase = createBrowserSupabase()
 
-  const [step, setStep]       = useState('email');
-  const [email, setEmail]     = useState('');
-  const [otp, setOtp]         = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
+  const [step, setStep] = useState('email')
+  const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [resendTimer, setResendTimer] = useState(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        const params = new URLSearchParams(window.location.search);
-        router.replace(params.get('next') || '/account');
+        const params = new URLSearchParams(window.location.search)
+        router.replace(params.get('next') || '/account')
       }
-    });
-  }, []);
+    })
+  }, [])
 
   useEffect(() => {
-    if (resendTimer <= 0) return;
-    const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendTimer]);
+    if (resendTimer <= 0) return
+    const t = setTimeout(() => setResendTimer((r) => r - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendTimer])
 
   const sendOTP = async (e) => {
-    if (e) e.preventDefault();
-    if (!email.trim()) return;
-    setLoading(true); setError('');
+    if (e) e.preventDefault()
+    if (!email.trim()) return
+    setLoading(true)
+    setError('')
 
     const res = await fetch('/api/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
-    });
-    const data = await res.json();
-    setLoading(false);
+      body: JSON.stringify({ email: email.trim().toLowerCase() })
+    })
+    const data = await res.json()
+    setLoading(false)
 
-    if (!res.ok) { setError(data.error || 'Failed to send code.'); return; }
-    setStep('otp');
-    setResendTimer(60);
-  };
+    if (!res.ok) {
+      setError(data.error || 'Failed to send code.')
+      return
+    }
+    setStep('otp')
+    setResendTimer(60)
+  }
 
   const verifyOTP = async (e) => {
-    if (e) e.preventDefault();
-    if (otp.length < 6) return;
-    setLoading(true); setError('');
+    if (e) e.preventDefault()
+    if (otp.length < 6) return
+    setLoading(true)
+    setError('')
 
     const res = await fetch('/api/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otp.trim() }),
-    });
-    const data = await res.json();
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        otp: otp.trim()
+      })
+    })
+    const data = await res.json()
 
-    if (!res.ok) { setError(data.error || 'Invalid code.'); setLoading(false); return; }
+    if (!res.ok) {
+      setError(data.error || 'Invalid code.')
+      setLoading(false)
+      return
+    }
 
     // Use the magic link to establish a Supabase session
     if (data.action_link) {
-      const url = new URL(data.action_link);
-      const tokenHash = url.searchParams.get('token_hash') || url.searchParams.get('token');
-      const type = url.searchParams.get('type') || 'magiclink';
+      const url = new URL(data.action_link)
+      const tokenHash =
+        url.searchParams.get('token_hash') || url.searchParams.get('token')
+      const type = url.searchParams.get('type') || 'magiclink'
 
       const { error: sessionErr } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
-        type: 'magiclink',
-      });
+        type: 'magiclink'
+      })
 
       if (sessionErr) {
-        setError('Sign in failed. Please try again.');
-        setLoading(false);
-        return;
+        setError('Sign in failed. Please try again.')
+        setLoading(false)
+        return
       }
     }
 
-    const params = new URLSearchParams(window.location.search);
-    router.replace(params.get('next') || '/account');
-  };
+    const params = new URLSearchParams(window.location.search)
+    router.replace(params.get('next') || '/account')
+  }
 
   const inp = {
-    width: '100%', boxSizing: 'border-box',
-    background: 'rgba(255,255,255,0.05)',
-    border: '0.5px solid rgba(255,255,255,0.15)',
-    borderRadius: 8, padding: '14px 16px',
-    fontFamily: 'var(--ff-sans)', fontSize: 16,
-    color: 'rgba(255,255,255,0.9)', outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'var(--w05)',
+    border: '0.5px solid var(--w15)',
+    borderRadius: 8,
+    padding: '14px 16px',
+    fontFamily: 'var(--ff-sans)',
+    fontSize: 16,
+    color: 'var(--w90)',
+    outline: 'none',
     letterSpacing: step === 'otp' ? '0.3em' : '0.02em',
-    textAlign: step === 'otp' ? 'center' : 'left',
-  };
+    textAlign: step === 'otp' ? 'center' : 'left'
+  }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
-      <nav style={{ borderBottom: '0.5px solid var(--border)', padding: '0 4vw', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ fontFamily: 'var(--ff-sans)', fontSize: 14, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg)'
+      }}
+    >
+      <nav
+        style={{
+          borderBottom: '0.5px solid var(--border)',
+          padding: '0 4vw',
+          height: 56,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <Link
+          href='/'
+          style={{
+            fontFamily: 'var(--ff-sans)',
+            fontSize: 14,
+            fontWeight: 500,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--w90)'
+          }}
+        >
           Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
         </Link>
-        <Link href="/" style={{ fontSize: 11, color: 'var(--t3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>← Back to store</Link>
+        <Link
+          href='/'
+          style={{
+            fontSize: 11,
+            color: 'var(--t3)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase'
+          }}
+        >
+          ← Back to store
+        </Link>
       </nav>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem' }}>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem 1.5rem'
+        }}
+      >
         <div style={{ width: '100%', maxWidth: 400 }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', border: '0.5px solid rgba(176,144,96,0.4)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, fontSize: 20 }}>🧴</div>
-            <h1 style={{ fontFamily: 'var(--ff-serif)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--t1)', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                border: '0.5px solid var(--gold-40)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 20,
+                fontSize: 20
+              }}
+            >
+              🧴
+            </div>
+            <h1
+              style={{
+                fontFamily: 'var(--ff-serif)',
+                fontSize: '1.8rem',
+                fontWeight: 400,
+                color: 'var(--t1)',
+                marginBottom: 8
+              }}
+            >
               {step === 'email' ? 'Sign in' : 'Check your email'}
             </h1>
             <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>
-              {step === 'email'
-                ? "Enter your email — we'll send a one-time code. You'll stay signed in after."
-                : <>We sent a 6-digit code to<br /><span style={{ color: 'var(--gold)' }}>{email}</span></>
-              }
+              {step === 'email' ? (
+                "Enter your email — we'll send a one-time code. You'll stay signed in after."
+              ) : (
+                <>
+                  We sent a 6-digit code to
+                  <br />
+                  <span style={{ color: 'var(--gold)' }}>{email}</span>
+                </>
+              )}
             </p>
           </div>
 
           {step === 'email' && (
-            <form onSubmit={sendOTP} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form
+              onSubmit={sendOTP}
+              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            >
               <div>
-                <label style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--t3)', display: 'block', marginBottom: 8 }}>Email address</label>
-                <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} placeholder="you@example.com" autoFocus required style={inp} />
+                <label
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: 'var(--t3)',
+                    display: 'block',
+                    marginBottom: 8
+                  }}
+                >
+                  Email address
+                </label>
+                <input
+                  type='email'
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setError('')
+                  }}
+                  placeholder='you@example.com'
+                  autoFocus
+                  required
+                  style={inp}
+                />
               </div>
-              {error && <p style={{ fontSize: 12, color: '#e05a5a', textAlign: 'center' }}>{error}</p>}
-              <button type="submit" disabled={loading || !email.trim()} style={{ width: '100%', padding: '14px', borderRadius: 8, background: loading ? 'rgba(176,144,96,0.5)' : '#b09060', border: 'none', color: '#fff', fontFamily: 'var(--ff-sans)', fontSize: 13, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer' }}>
+              {error && (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--red)',
+                    textAlign: 'center'
+                  }}
+                >
+                  {error}
+                </p>
+              )}
+              <button
+                type='submit'
+                disabled={loading || !email.trim()}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: 8,
+                  background: loading ? 'var(--gold-50)' : '#b09060',
+                  border: 'none',
+                  color: '#fff',
+                  fontFamily: 'var(--ff-sans)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  cursor: loading ? 'not-allowed' : 'pointer'
+                }}
+              >
                 {loading ? 'Sending...' : 'Send Code'}
               </button>
-              <p style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center', lineHeight: 1.7 }}>No account needed — just enter your email.</p>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: 'var(--t3)',
+                  textAlign: 'center',
+                  lineHeight: 1.7
+                }}
+              >
+                No account needed — just enter your email.
+              </p>
             </form>
           )}
 
           {step === 'otp' && (
-            <form onSubmit={verifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form
+              onSubmit={verifyOTP}
+              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            >
               <div>
-                <label style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--t3)', display: 'block', marginBottom: 8, textAlign: 'center' }}>6-digit code</label>
-                <input type="text" inputMode="numeric" value={otp} onChange={e => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }} placeholder="000000" autoFocus maxLength={6} style={inp} />
+                <label
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: 'var(--t3)',
+                    display: 'block',
+                    marginBottom: 8,
+                    textAlign: 'center'
+                  }}
+                >
+                  6-digit code
+                </label>
+                <input
+                  type='text'
+                  inputMode='numeric'
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
+                    setError('')
+                  }}
+                  placeholder='000000'
+                  autoFocus
+                  maxLength={6}
+                  style={inp}
+                />
               </div>
-              {error && <p style={{ fontSize: 12, color: '#e05a5a', textAlign: 'center' }}>{error}</p>}
-              <button type="submit" disabled={loading || otp.length < 6} style={{ width: '100%', padding: '14px', borderRadius: 8, background: loading || otp.length < 6 ? 'rgba(176,144,96,0.5)' : '#b09060', border: 'none', color: '#fff', fontFamily: 'var(--ff-sans)', fontSize: 13, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: loading || otp.length < 6 ? 'not-allowed' : 'pointer' }}>
+              {error && (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--red)',
+                    textAlign: 'center'
+                  }}
+                >
+                  {error}
+                </p>
+              )}
+              <button
+                type='submit'
+                disabled={loading || otp.length < 6}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: 8,
+                  background:
+                    loading || otp.length < 6 ? 'var(--gold-50)' : '#b09060',
+                  border: 'none',
+                  color: '#fff',
+                  fontFamily: 'var(--ff-sans)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  cursor: loading || otp.length < 6 ? 'not-allowed' : 'pointer'
+                }}
+              >
                 {loading ? 'Verifying...' : 'Sign In'}
               </button>
               <div style={{ textAlign: 'center' }}>
-                {resendTimer > 0
-                  ? <span style={{ fontSize: 12, color: 'var(--t3)' }}>Resend in {resendTimer}s</span>
-                  : <button type="button" onClick={sendOTP} style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>Resend code</button>
-                }
-                <span style={{ color: 'var(--t3)', fontSize: 12, margin: '0 8px' }}>·</span>
-                <button type="button" onClick={() => { setStep('email'); setOtp(''); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 12, cursor: 'pointer' }}>Change email</button>
+                {resendTimer > 0 ? (
+                  <span style={{ fontSize: 12, color: 'var(--t3)' }}>
+                    Resend in {resendTimer}s
+                  </span>
+                ) : (
+                  <button
+                    type='button'
+                    onClick={sendOTP}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--gold)',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Resend code
+                  </button>
+                )}
+                <span
+                  style={{ color: 'var(--t3)', fontSize: 12, margin: '0 8px' }}
+                >
+                  ·
+                </span>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setStep('email')
+                    setOtp('')
+                    setError('')
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--t3)',
+                    fontSize: 12,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Change email
+                </button>
               </div>
-              <p style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center' }}>After this you'll stay signed in — no code needed next time.</p>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: 'var(--t3)',
+                  textAlign: 'center'
+                }}
+              >
+                After this you'll stay signed in — no code needed next time.
+              </p>
             </form>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }

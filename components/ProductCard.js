@@ -38,7 +38,7 @@ export default function ProductCard({
         : 'Dupe'
   const catColor =
     category === 'niche'
-      ? 'rgba(176,144,96,0.15)'
+      ? 'var(--gold-15)'
       : category === 'designer'
         ? 'rgba(100,130,200,0.15)'
         : 'rgba(100,100,100,0.15)'
@@ -90,11 +90,8 @@ export default function ProductCard({
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         style={{
-          background:
-            hov && !sold_out
-              ? 'rgba(176,144,96,0.06)'
-              : 'rgba(255,255,255,0.02)',
-          border: `0.5px solid ${hov && !sold_out ? 'rgba(176,144,96,0.35)' : 'var(--border)'}`,
+          background: hov && !sold_out ? 'var(--gold-06)' : 'var(--w02)',
+          border: `0.5px solid ${hov && !sold_out ? 'var(--gold-35)' : 'var(--border)'}`,
           borderRadius: 8,
           overflow: 'hidden',
           display: 'flex',
@@ -124,8 +121,8 @@ export default function ProductCard({
                 fontSize: 10,
                 letterSpacing: '0.2em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.5)',
-                border: '0.5px solid rgba(255,255,255,0.2)',
+                color: 'var(--w50)',
+                border: '0.5px solid var(--w20)',
                 padding: '3px 10px',
                 borderRadius: 2
               }}
@@ -148,7 +145,7 @@ export default function ProductCard({
             height: 28,
             borderRadius: '50%',
             background: hearted ? 'rgba(220,60,60,0.2)' : 'rgba(0,0,0,0.4)',
-            border: `0.5px solid ${hearted ? 'rgba(220,60,60,0.5)' : 'rgba(255,255,255,0.15)'}`,
+            border: `0.5px solid ${hearted ? 'rgba(220,60,60,0.5)' : 'var(--w15)'}`,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -167,7 +164,7 @@ export default function ProductCard({
             height: 180,
             overflow: 'hidden',
             flexShrink: 0,
-            background: 'rgba(255,255,255,0.02)',
+            background: 'var(--w02)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -202,8 +199,8 @@ export default function ProductCard({
               padding: '2px 7px',
               borderRadius: 3,
               background: catColor,
-              color: 'rgba(255,255,255,0.5)',
-              border: '0.5px solid rgba(255,255,255,0.08)'
+              color: 'var(--w50)',
+              border: '0.5px solid var(--w08)'
             }}
           >
             {catLabel}
@@ -261,7 +258,7 @@ export default function ProductCard({
                   <span
                     style={{
                       textDecoration: 'line-through',
-                      color: 'rgba(255,255,255,0.25)'
+                      color: 'var(--w25)'
                     }}
                   >
                     {formatINR(product.mrp)}
@@ -291,8 +288,8 @@ export default function ProductCard({
                   width: 28,
                   height: 28,
                   borderRadius: '50%',
-                  background: 'rgba(176,144,96,0.15)',
-                  border: '0.5px solid rgba(176,144,96,0.4)',
+                  background: 'var(--gold-15)',
+                  border: '0.5px solid var(--gold-40)',
                   color: 'var(--gold)',
                   fontSize: 18,
                   cursor: 'pointer',
@@ -325,8 +322,8 @@ export default function ProductCard({
         >
           <div
             style={{
-              background: '#141210',
-              border: '0.5px solid rgba(176,144,96,0.3)',
+              background: 'var(--bg3)',
+              border: '0.5px solid var(--gold-30)',
               borderRadius: 10,
               padding: '1.5rem',
               width: 320,
@@ -382,9 +379,9 @@ export default function ProductCard({
                         borderRadius: 6,
                         background:
                           selectedSize === size
-                            ? 'rgba(176,144,96,0.12)'
-                            : 'rgba(255,255,255,0.03)',
-                        border: `0.5px solid ${selectedSize === size ? 'rgba(176,144,96,0.5)' : 'var(--border)'}`,
+                            ? 'var(--gold-12)'
+                            : 'var(--w03)',
+                        border: `0.5px solid ${selectedSize === size ? 'var(--gold-50)' : 'var(--border)'}`,
                         color:
                           selectedSize === size ? 'var(--gold)' : 'var(--t2)',
                         cursor: 'pointer',
@@ -402,8 +399,8 @@ export default function ProductCard({
               style={{
                 width: '100%',
                 padding: '11px',
-                background: 'rgba(176,144,96,0.15)',
-                border: '0.5px solid rgba(176,144,96,0.4)',
+                background: 'var(--gold-15)',
+                border: '0.5px solid var(--gold-40)',
                 borderRadius: 6,
                 color: 'var(--gold)',
                 fontSize: 13,

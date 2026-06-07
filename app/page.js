@@ -34,7 +34,7 @@ const COMBOS = [
     emoji: '🎯',
     tag: 'Starter Combo',
     tagline: 'New to fragrance? Four crowd-pleasing picks to get you started.',
-    color: '#4caf7d',
+    color: 'var(--green-txt)',
     discountPct: 10,
     items: [
       { brand: 'Lattafa', name: 'Asad Elixir', size: '5ml', price: 179 },
@@ -240,7 +240,7 @@ export default function Home() {
       letterSpacing: '0.1em',
       textTransform: 'uppercase',
       padding: '8px 16px',
-      color: active ? 'var(--gold)' : 'rgba(255,255,255,0.4)',
+      color: active ? 'var(--gold)' : 'var(--w40)',
       borderBottom: active ? '2px solid var(--gold)' : '2px solid transparent',
       transition: 'all .2s',
       whiteSpace: 'nowrap'
@@ -265,7 +265,7 @@ export default function Home() {
       <div
         style={{
           background: '#0e0c0a',
-          borderBottom: '0.5px solid rgba(255,255,255,0.05)',
+          borderBottom: '0.5px solid var(--w05)',
           padding: '7px 0',
           textAlign: 'center',
           fontSize: 11,
@@ -370,7 +370,7 @@ export default function Home() {
                   position: 'absolute',
                   inset: 0,
                   background:
-                    'linear-gradient(100deg, rgba(10,9,8,0.97) 30%, rgba(10,9,8,0.75) 50%, rgba(10,9,8,0.2) 80%, rgba(10,9,8,0.1) 100%)'
+                    'linear-gradient(100deg, color-mix(in srgb, var(--bg) 97%, transparent) 30%, color-mix(in srgb, var(--bg) 75%, transparent) 50%, color-mix(in srgb, var(--bg) 20%, transparent) 80%, color-mix(in srgb, var(--bg) 10%, transparent) 100%)'
                 }}
               />
             </div>
@@ -418,7 +418,7 @@ export default function Home() {
                     fontFamily: 'var(--ff-serif)',
                     fontSize: 'clamp(2.4rem,5vw,4rem)',
                     fontWeight: 400,
-                    color: 'rgba(255,255,255,0.95)',
+                    color: 'var(--w95)',
                     lineHeight: 1.12,
                     marginBottom: 18
                   }}
@@ -432,7 +432,7 @@ export default function Home() {
                 <p
                   style={{
                     fontSize: 14,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: 'var(--w45)',
                     maxWidth: 400,
                     lineHeight: 1.75,
                     marginBottom: 28
@@ -453,7 +453,7 @@ export default function Home() {
                         style={{
                           fontFamily: 'var(--ff-serif)',
                           fontSize: '1.4rem',
-                          color: 'rgba(255,255,255,0.85)'
+                          color: 'var(--w85)'
                         }}
                       >
                         {val}
@@ -463,7 +463,7 @@ export default function Home() {
                           fontSize: 10,
                           letterSpacing: '0.12em',
                           textTransform: 'uppercase',
-                          color: 'rgba(255,255,255,0.3)',
+                          color: 'var(--w30)',
                           marginTop: 2
                         }}
                       >
@@ -499,8 +499,8 @@ export default function Home() {
                       padding: '12px 24px',
                       borderRadius: 4,
                       background: 'none',
-                      border: '0.5px solid rgba(255,255,255,0.2)',
-                      color: 'rgba(255,255,255,0.65)',
+                      border: '0.5px solid var(--w20)',
+                      color: 'var(--w65)',
                       fontFamily: 'var(--ff-sans)',
                       fontSize: 12,
                       letterSpacing: '0.1em',
@@ -686,7 +686,7 @@ export default function Home() {
                   <div
                     key={combo.id}
                     style={{
-                      background: 'rgba(255,255,255,0.02)',
+                      background: 'var(--w02)',
                       border: '0.5px solid var(--border)',
                       borderRadius: 10,
                       padding: '1.25rem',
@@ -695,8 +695,7 @@ export default function Home() {
                       transition: 'all .2s'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor =
-                        'rgba(176,144,96,0.35)'
+                      e.currentTarget.style.borderColor = 'var(--gold-35)'
                       e.currentTarget.style.transform = 'translateY(-2px)'
                     }}
                     onMouseLeave={(e) => {
@@ -709,14 +708,14 @@ export default function Home() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
-                        background: 'rgba(176,144,96,0.1)',
-                        border: '0.5px solid rgba(176,144,96,0.2)',
+                        background: 'var(--gold-10)',
+                        border: '0.5px solid var(--gold-20)',
                         borderRadius: 4,
                         padding: '3px 10px',
                         fontSize: 10,
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        color: 'rgba(255,255,255,0.6)',
+                        color: 'var(--w60)',
                         marginBottom: '0.75rem',
                         alignSelf: 'flex-start'
                       }}
@@ -757,7 +756,7 @@ export default function Home() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             fontSize: 12,
-                            color: 'rgba(255,255,255,0.45)',
+                            color: 'var(--w45)',
                             padding: '4px 0'
                           }}
                         >
@@ -797,7 +796,7 @@ export default function Home() {
                       <div
                         style={{
                           fontSize: 10,
-                          color: '#4caf7d',
+                          color: 'var(--green-txt)',
                           background: 'rgba(76,175,125,0.1)',
                           padding: '2px 7px',
                           borderRadius: 3
@@ -982,7 +981,7 @@ export default function Home() {
                         key={brand}
                         onClick={() => setSelectedBrand(brand)}
                         style={{
-                          background: 'rgba(255,255,255,0.02)',
+                          background: 'var(--w02)',
                           border: '0.5px solid var(--border)',
                           borderRadius: 8,
                           padding: '18px 14px',
@@ -992,23 +991,20 @@ export default function Home() {
                           transition: 'all .18s'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor =
-                            'rgba(176,144,96,0.5)'
-                          e.currentTarget.style.background =
-                            'rgba(176,144,96,0.07)'
+                          e.currentTarget.style.borderColor = 'var(--gold-50)'
+                          e.currentTarget.style.background = 'var(--gold-07)'
                           e.currentTarget.style.transform = 'translateY(-2px)'
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.borderColor = 'var(--border)'
-                          e.currentTarget.style.background =
-                            'rgba(255,255,255,0.02)'
+                          e.currentTarget.style.background = 'var(--w02)'
                           e.currentTarget.style.transform = 'none'
                         }}
                       >
                         <div
                           style={{
                             fontSize: 13,
-                            color: 'rgba(255,255,255,0.85)',
+                            color: 'var(--w85)',
                             fontWeight: 500,
                             marginBottom: 6,
                             lineHeight: 1.3
@@ -1172,7 +1168,7 @@ export default function Home() {
                 fontFamily: 'var(--ff-serif)',
                 fontSize: 'clamp(2rem,4vw,2.8rem)',
                 fontWeight: 400,
-                color: 'rgba(255,255,255,0.92)',
+                color: 'var(--w92)',
                 marginBottom: 16,
                 lineHeight: 1.2
               }}
@@ -1182,7 +1178,7 @@ export default function Home() {
             <p
               style={{
                 fontSize: 14,
-                color: 'rgba(255,255,255,0.5)',
+                color: 'var(--w50)',
                 lineHeight: 1.8
               }}
             >
@@ -1195,7 +1191,7 @@ export default function Home() {
           </div>
           <div
             style={{
-              borderTop: '0.5px solid rgba(255,255,255,0.06)',
+              borderTop: '0.5px solid var(--w06)',
               paddingTop: '2.5rem'
             }}
           >
@@ -1204,7 +1200,7 @@ export default function Home() {
                 fontFamily: 'var(--ff-serif)',
                 fontSize: '1.4rem',
                 fontWeight: 400,
-                color: 'rgba(255,255,255,0.85)',
+                color: 'var(--w85)',
                 marginBottom: '1.5rem'
               }}
             >
@@ -1244,14 +1240,14 @@ export default function Home() {
                 <div
                   key={q}
                   style={{
-                    borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+                    borderBottom: '0.5px solid var(--w06)',
                     paddingBottom: 16
                   }}
                 >
                   <div
                     style={{
                       fontSize: 14,
-                      color: 'rgba(255,255,255,0.85)',
+                      color: 'var(--w85)',
                       fontWeight: 500,
                       marginBottom: 6
                     }}
@@ -1261,7 +1257,7 @@ export default function Home() {
                   <div
                     style={{
                       fontSize: 13,
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--w40)',
                       lineHeight: 1.7
                     }}
                   >
@@ -1275,8 +1271,8 @@ export default function Home() {
             style={{
               marginTop: '3rem',
               padding: '1.5rem',
-              background: 'rgba(176,144,96,0.05)',
-              border: '0.5px solid rgba(176,144,96,0.15)',
+              background: 'var(--gold-05)',
+              border: '0.5px solid var(--gold-15)',
               borderRadius: 8,
               textAlign: 'center'
             }}
@@ -1284,7 +1280,7 @@ export default function Home() {
             <p
               style={{
                 fontSize: 14,
-                color: 'rgba(255,255,255,0.6)',
+                color: 'var(--w60)',
                 marginBottom: 10
               }}
             >
@@ -1319,7 +1315,7 @@ export default function Home() {
             bottom: 24,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(176,144,96,0.95)',
+            background: 'var(--gold-95)',
             color: '#fff',
             padding: '10px 20px',
             borderRadius: 6,
@@ -1348,7 +1344,7 @@ export default function Home() {
         style={{
           borderTop: '0.5px solid var(--border)',
           padding: '3rem 4vw 2.5rem',
-          background: '#0a0908'
+          background: 'var(--bg)'
         }}
       >
         <div
@@ -1398,7 +1394,7 @@ export default function Home() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: 'rgba(255,255,255,0.65)',
+                  color: 'var(--w65)',
                   fontSize: 13,
                   textDecoration: 'none'
                 }}
@@ -1427,7 +1423,7 @@ export default function Home() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 8,
-                  color: 'rgba(255,255,255,0.65)',
+                  color: 'var(--w65)',
                   fontSize: 13,
                   textDecoration: 'none'
                 }}
@@ -1461,10 +1457,10 @@ export default function Home() {
             maxWidth: 1400,
             margin: '2rem auto 0',
             paddingTop: '1.5rem',
-            borderTop: '0.5px solid rgba(255,255,255,0.05)',
+            borderTop: '0.5px solid var(--w05)',
             textAlign: 'center',
             fontSize: 11,
-            color: 'rgba(255,255,255,0.2)'
+            color: 'var(--w20)'
           }}
         >
           © 2026 Scent Snob Decants · All rights reserved

@@ -112,7 +112,7 @@ export default function LuckyWheel({ products, onClose, onWin }) {
         seg.name.length > 12 ? seg.name.slice(0, 12) + '…' : seg.name
       ctx.fillText(seg.brand, r - 8, -4)
       ctx.font = `9px sans-serif`
-      ctx.fillStyle = 'rgba(255,255,255,0.75)'
+      ctx.fillStyle = 'var(--w75)'
       ctx.fillText(label, r - 8, 8)
       ctx.restore()
     })
@@ -120,7 +120,7 @@ export default function LuckyWheel({ products, onClose, onWin }) {
     // Center circle
     ctx.beginPath()
     ctx.arc(cx, cy, 28, 0, 2 * Math.PI)
-    ctx.fillStyle = '#0a0908'
+    ctx.fillStyle = 'var(--bg)'
     ctx.fill()
     ctx.strokeStyle = '#b09060'
     ctx.lineWidth = 2
@@ -210,7 +210,7 @@ export default function LuckyWheel({ products, onClose, onWin }) {
       <div
         style={{
           background: '#0e0c0a',
-          border: '0.5px solid rgba(176,144,96,0.3)',
+          border: '0.5px solid var(--gold-30)',
           borderRadius: 16,
           padding: '2rem',
           width: '100%',
@@ -279,7 +279,7 @@ export default function LuckyWheel({ products, onClose, onWin }) {
               style={{
                 padding: '12px 36px',
                 borderRadius: 8,
-                background: spinning ? 'rgba(176,144,96,0.4)' : '#b09060',
+                background: spinning ? 'var(--gold-40)' : '#b09060',
                 border: 'none',
                 color: '#fff',
                 fontFamily: 'var(--ff-sans)',
@@ -338,9 +338,9 @@ export default function LuckyWheel({ products, onClose, onWin }) {
                 fontSize: 11,
                 padding: '3px 12px',
                 borderRadius: 20,
-                background: 'rgba(176,144,96,0.12)',
+                background: 'var(--gold-12)',
                 color: 'var(--gold)',
-                border: '0.5px solid rgba(176,144,96,0.3)',
+                border: '0.5px solid var(--gold-30)',
                 marginBottom: 20
               }}
             >
