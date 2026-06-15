@@ -1451,6 +1451,58 @@ export default function Home() {
               <div>UPI: praveenpugazh14@okicici</div>
             </div>
           </div>
+          <div>
+            <p
+              style={{
+                fontSize: 10,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'var(--t3)',
+                marginBottom: 12
+              }}
+            >
+              Legal
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                fontSize: 13
+              }}
+            >
+              <a
+                href='/shipping-policy'
+                style={{ color: 'var(--w65)', textDecoration: 'none' }}
+              >
+                Shipping Policy
+              </a>
+              <a
+                href='/refund-policy'
+                style={{ color: 'var(--w65)', textDecoration: 'none' }}
+              >
+                Refund & Cancellation
+              </a>
+              <a
+                href='/terms'
+                style={{ color: 'var(--w65)', textDecoration: 'none' }}
+              >
+                Terms & Conditions
+              </a>
+              <a
+                href='/privacy-policy'
+                style={{ color: 'var(--w65)', textDecoration: 'none' }}
+              >
+                Privacy Policy
+              </a>
+              <a
+                href='/contact'
+                style={{ color: 'var(--w65)', textDecoration: 'none' }}
+              >
+                Contact Us
+              </a>
+            </div>
+          </div>
         </div>
         <div
           style={{
