@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { calcPrices, formatINR } from '@/lib/pricing'
+import { calcPrices, formatINR, DEFAULT_MARGIN } from '@/lib/pricing'
 import { createBrowserSupabase } from '@/lib/supabase'
 
 const ADMIN_EMAIL = 'praveenpugazh14@gmail.com'
@@ -14,8 +14,8 @@ const S = {
     borderRadius: 4
   },
   inp: {
-    background: 'var(--w06)',
-    border: '0.5px solid var(--w15)',
+    background: 'rgba(255,255,255,0.06)',
+    border: '0.5px solid rgba(255,255,255,0.15)',
     borderRadius: 4,
     padding: '8px 10px',
     fontFamily: 'var(--ff-sans)',
@@ -29,13 +29,13 @@ const S = {
     fontSize: 10,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: 'var(--w40)',
+    color: 'rgba(255,255,255,0.4)',
     display: 'block',
     marginBottom: 4
   },
   card: {
-    background: 'var(--w02)',
-    border: '0.5px solid var(--w08)',
+    background: 'rgba(255,255,255,0.02)',
+    border: '0.5px solid rgba(255,255,255,0.08)',
     borderRadius: 6,
     padding: '0.85rem 1rem'
   }
@@ -46,7 +46,7 @@ const STATUS_COLORS = {
   Pending: '#b09060',
   Paid: '#4a9eff',
   Shipped: '#9b59b6',
-  Delivered: 'var(--green-txt)',
+  Delivered: '#4caf7d',
   Cancelled: '#dc5050'
 }
 
@@ -77,9 +77,9 @@ function StatusStepper({ status, onChange }) {
             ...S.btn,
             fontSize: 10,
             padding: '3px 9px',
-            background: 'var(--w05)',
-            color: 'var(--w40)',
-            border: '0.5px solid var(--w12)',
+            background: 'rgba(255,255,255,0.05)',
+            color: 'rgba(255,255,255,0.4)',
+            border: '0.5px solid rgba(255,255,255,0.12)',
             borderRadius: 20
           }}
         >
@@ -94,9 +94,9 @@ function StatusStepper({ status, onChange }) {
             ...S.btn,
             fontSize: 10,
             padding: '3px 7px',
-            background: 'var(--red-bg)',
+            background: 'rgba(220,80,80,0.08)',
             color: 'rgba(220,80,80,0.5)',
-            border: '0.5px solid var(--red-br)',
+            border: '0.5px solid rgba(220,80,80,0.2)',
             borderRadius: 20
           }}
         >
@@ -180,7 +180,7 @@ function OrdersTab() {
               ...S.card,
               borderColor:
                 label === 'Pending' && pendingCount > 0
-                  ? 'var(--gold-30)'
+                  ? 'rgba(176,144,96,0.3)'
                   : undefined
             }}
           >
@@ -189,7 +189,7 @@ function OrdersTab() {
                 fontSize: 9,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                color: 'var(--w35)',
+                color: 'rgba(255,255,255,0.35)',
                 marginBottom: 6
               }}
             >
@@ -201,7 +201,7 @@ function OrdersTab() {
                 color:
                   label === 'Pending' && pendingCount > 0
                     ? '#b09060'
-                    : 'var(--w90)',
+                    : 'rgba(255,255,255,0.9)',
                 fontWeight: 300,
                 fontFamily: 'var(--ff-serif)'
               }}
@@ -215,7 +215,7 @@ function OrdersTab() {
                   color:
                     label === 'Pending' && pendingCount > 0
                       ? '#b09060'
-                      : 'var(--w25)',
+                      : 'rgba(255,255,255,0.25)',
                   marginTop: 2
                 }}
               >
@@ -251,11 +251,13 @@ function OrdersTab() {
                     filter === f
                       ? STATUS_COLORS[f]
                         ? `${STATUS_COLORS[f]}22`
-                        : 'var(--gold-15)'
-                      : 'var(--w03)',
+                        : 'rgba(176,144,96,0.15)'
+                      : 'rgba(255,255,255,0.03)',
                   color:
-                    filter === f ? STATUS_COLORS[f] || '#b09060' : 'var(--w35)',
-                  border: `0.5px solid ${filter === f ? (STATUS_COLORS[f] ? `${STATUS_COLORS[f]}44` : 'var(--gold-30)') : 'var(--w08)'}`
+                    filter === f
+                      ? STATUS_COLORS[f] || '#b09060'
+                      : 'rgba(255,255,255,0.35)',
+                  border: `0.5px solid ${filter === f ? (STATUS_COLORS[f] ? `${STATUS_COLORS[f]}44` : 'rgba(176,144,96,0.3)') : 'rgba(255,255,255,0.08)'}`
                 }}
               >
                 {f}
@@ -266,7 +268,7 @@ function OrdersTab() {
       </div>
 
       {loading ? (
-        <div style={{ color: 'var(--w30)', padding: '2rem' }}>
+        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
           Loading orders...
         </div>
       ) : (
@@ -277,7 +279,7 @@ function OrdersTab() {
               ...S.card,
               marginBottom: 10,
               borderColor:
-                order.status === 'Pending' ? 'var(--gold-20)' : undefined
+                order.status === 'Pending' ? 'rgba(176,144,96,0.2)' : undefined
             }}
           >
             <div
@@ -308,7 +310,9 @@ function OrdersTab() {
                   >
                     {order.order_ref}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--w25)' }}>
+                  <span
+                    style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}
+                  >
                     {new Date(order.created_at).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
@@ -319,20 +323,20 @@ function OrdersTab() {
                 <div
                   style={{
                     fontSize: 14,
-                    color: 'var(--w85)',
+                    color: 'rgba(255,255,255,0.85)',
                     fontWeight: 500
                   }}
                 >
                   {order.customer}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--w40)' }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                   {order.phone}
                 </div>
                 {order.address && (
                   <div
                     style={{
                       fontSize: 11,
-                      color: 'var(--w25)',
+                      color: 'rgba(255,255,255,0.25)',
                       marginTop: 4,
                       maxWidth: 300
                     }}
@@ -352,7 +356,7 @@ function OrdersTab() {
                 <div
                   style={{
                     fontSize: 20,
-                    color: 'var(--w90)',
+                    color: 'rgba(255,255,255,0.9)',
                     fontWeight: 500
                   }}
                 >
@@ -369,7 +373,7 @@ function OrdersTab() {
                 style={{
                   marginTop: 10,
                   paddingTop: 10,
-                  borderTop: '0.5px solid var(--w06)'
+                  borderTop: '0.5px solid rgba(255,255,255,0.06)'
                 }}
               >
                 {order.items.map((item, i) => (
@@ -377,7 +381,7 @@ function OrdersTab() {
                     key={i}
                     style={{
                       fontSize: 12,
-                      color: 'var(--w40)',
+                      color: 'rgba(255,255,255,0.4)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       marginBottom: 2
@@ -386,7 +390,7 @@ function OrdersTab() {
                     <span>
                       {item.brand} {item.name} ({item.size}) ×{item.qty}
                     </span>
-                    <span style={{ color: 'var(--w55)' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.55)' }}>
                       {formatINR(item.price * item.qty)}
                     </span>
                   </div>
@@ -397,9 +401,9 @@ function OrdersTab() {
                     justifyContent: 'space-between',
                     marginTop: 6,
                     paddingTop: 6,
-                    borderTop: '0.5px solid var(--w04)',
+                    borderTop: '0.5px solid rgba(255,255,255,0.04)',
                     fontSize: 11,
-                    color: 'var(--w25)'
+                    color: 'rgba(255,255,255,0.25)'
                   }}
                 >
                   <span>
@@ -416,7 +420,7 @@ function OrdersTab() {
       {!loading && filtered.length === 0 && (
         <div
           style={{
-            color: 'var(--w25)',
+            color: 'rgba(255,255,255,0.25)',
             padding: '3rem',
             textAlign: 'center'
           }}
@@ -659,12 +663,12 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
       >
         <span
           style={{
-            color: value ? 'var(--w90)' : 'var(--w30)'
+            color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'
           }}
         >
           {value || 'Select brand...'}
         </span>
-        <span style={{ color: 'var(--w30)', fontSize: 10 }}>
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>
           {open ? '▲' : '▼'}
         </span>
       </div>
@@ -677,7 +681,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
             right: 0,
             zIndex: 400,
             background: '#1a1714',
-            border: '0.5px solid var(--gold-30)',
+            border: '0.5px solid rgba(176,144,96,0.3)',
             borderRadius: 6,
             marginTop: 4,
             maxHeight: 240,
@@ -688,7 +692,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
           <div
             style={{
               padding: '8px 10px',
-              borderBottom: '0.5px solid var(--w06)'
+              borderBottom: '0.5px solid rgba(255,255,255,0.06)'
             }}
           >
             <input
@@ -701,7 +705,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 background: 'none',
                 border: 'none',
                 outline: 'none',
-                color: 'var(--w90)',
+                color: 'rgba(255,255,255,0.9)',
                 fontSize: 13,
                 fontFamily: 'var(--ff-sans)'
               }}
@@ -714,9 +718,9 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 style={{
                   padding: '9px 12px',
                   fontSize: 12,
-                  color: 'var(--green-txt)',
+                  color: '#4caf7d',
                   cursor: 'pointer',
-                  borderBottom: '0.5px solid var(--w04)',
+                  borderBottom: '0.5px solid rgba(255,255,255,0.04)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6
@@ -730,7 +734,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 style={{
                   padding: '12px',
                   fontSize: 12,
-                  color: 'var(--w30)',
+                  color: 'rgba(255,255,255,0.3)',
                   textAlign: 'center'
                 }}
               >
@@ -744,16 +748,16 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 style={{
                   padding: '9px 12px',
                   fontSize: 13,
-                  color: b === value ? '#b09060' : 'var(--w75)',
+                  color: b === value ? '#b09060' : 'rgba(255,255,255,0.75)',
                   cursor: 'pointer',
-                  background: b === value ? 'var(--gold-08)' : 'none'
+                  background: b === value ? 'rgba(176,144,96,0.08)' : 'none'
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'var(--w05)')
+                  (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.background =
-                    b === value ? 'var(--gold-08)' : 'none')
+                    b === value ? 'rgba(176,144,96,0.08)' : 'none')
                 }
               >
                 {b}
@@ -803,8 +807,8 @@ function NotesSelect({ value, onChange }) {
                 fontSize: 11,
                 padding: '3px 10px',
                 borderRadius: 20,
-                background: 'var(--gold-18)',
-                border: '0.5px solid var(--gold-40)',
+                background: 'rgba(176,144,96,0.18)',
+                border: '0.5px solid rgba(176,144,96,0.4)',
                 color: '#b09060',
                 cursor: 'pointer',
                 display: 'flex',
@@ -818,7 +822,7 @@ function NotesSelect({ value, onChange }) {
           <span
             style={{
               fontSize: 11,
-              color: 'var(--w25)',
+              color: 'rgba(255,255,255,0.25)',
               padding: '3px 0',
               alignSelf: 'center'
             }}
@@ -856,12 +860,12 @@ function NotesSelect({ value, onChange }) {
               cursor: 'pointer',
               border: 'none',
               background: selected.includes(a)
-                ? 'var(--gold-20)'
-                : 'var(--w05)',
-              color: selected.includes(a) ? '#b09060' : 'var(--w50)',
+                ? 'rgba(176,144,96,0.2)'
+                : 'rgba(255,255,255,0.05)',
+              color: selected.includes(a) ? '#b09060' : 'rgba(255,255,255,0.5)',
               outline: selected.includes(a)
-                ? '0.5px solid var(--gold-40)'
-                : '0.5px solid var(--w08)',
+                ? '0.5px solid rgba(176,144,96,0.4)'
+                : '0.5px solid rgba(255,255,255,0.08)',
               fontFamily: 'var(--ff-sans)'
             }}
           >
@@ -877,13 +881,13 @@ const S_modal = {
   inp: {
     width: '100%',
     boxSizing: 'border-box',
-    background: 'var(--w05)',
-    border: '0.5px solid var(--w12)',
+    background: 'rgba(255,255,255,0.05)',
+    border: '0.5px solid rgba(255,255,255,0.12)',
     borderRadius: 6,
     padding: '10px 12px',
     fontFamily: 'var(--ff-sans)',
     fontSize: 13,
-    color: 'var(--w90)',
+    color: 'rgba(255,255,255,0.9)',
     outline: 'none'
   }
 }
@@ -901,6 +905,7 @@ function ProductsTab() {
     category: 'niche',
     paid_amount: '',
     bottle_ml: '',
+    margin: Math.round(DEFAULT_MARGIN * 100), // stored as % e.g. 3
     p5: 0,
     p10: 0,
     p20: 0,
@@ -923,9 +928,10 @@ function ProductsTab() {
       })
   }, [])
 
-  const recalc = (paid, ml) => {
+  const recalc = (paid, ml, marginPct) => {
+    const m = marginPct !== undefined ? marginPct : form.margin
     if (paid && ml) {
-      const { p5, p10, p20, p30 } = calcPrices(Number(paid), Number(ml))
+      const { p5, p10, p20, p30 } = calcPrices(Number(paid), Number(ml), Number(m) / 100)
       setForm((f) => ({ ...f, p5, p10, p20, p30, _autoCalc: true }))
     }
   }
@@ -971,9 +977,11 @@ function ProductsTab() {
         category: 'niche',
         paid_amount: '',
         bottle_ml: '',
+        margin: 3,
         p5: 0,
         p10: 0,
         p20: 0,
+        p30: 0,
         image_url: '',
         mrp: null
       })
@@ -998,9 +1006,11 @@ function ProductsTab() {
         category: 'niche',
         paid_amount: '',
         bottle_ml: '',
+        margin: 3,
         p5: 0,
         p10: 0,
         p20: 0,
+        p30: 0,
         image_url: '',
         mrp: null
       })
@@ -1049,6 +1059,7 @@ function ProductsTab() {
       p10: p.p10 != null ? p.p10 : 0,
       p20: p.p20 != null ? p.p20 : 0,
       p30: p.p30 != null ? p.p30 : 0,
+      margin: p.margin != null ? p.margin : 3,
       image_url: p.image_url || '',
       mrp: p.mrp != null ? p.mrp : null
     })
@@ -1084,7 +1095,7 @@ function ProductsTab() {
             display: 'flex',
             gap: 8,
             fontSize: 11,
-            color: 'var(--w30)',
+            color: 'rgba(255,255,255,0.3)',
             alignItems: 'center',
             flexShrink: 0
           }}
@@ -1144,8 +1155,8 @@ function ProductsTab() {
         >
           <div
             style={{
-              background: 'var(--bg2)',
-              border: '0.5px solid var(--gold-25)',
+              background: '#0e0c0a',
+              border: '0.5px solid rgba(176,144,96,0.25)',
               borderRadius: 10,
               padding: '1.75rem',
               width: '100%',
@@ -1195,7 +1206,7 @@ function ProductsTab() {
                 style={{
                   ...S.btn,
                   background: 'none',
-                  color: 'var(--w40)',
+                  color: 'rgba(255,255,255,0.4)',
                   fontSize: 20,
                   padding: '0 4px',
                   border: 'none'
@@ -1242,7 +1253,7 @@ function ProductsTab() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
                 gap: 12,
                 marginBottom: 12
               }}
@@ -1268,7 +1279,7 @@ function ProductsTab() {
                   placeholder='5500'
                   onChange={(e) => {
                     set('paid_amount', e.target.value)
-                    recalc(e.target.value, form.bottle_ml)
+                    recalc(e.target.value, form.bottle_ml, form.margin)
                   }}
                 />
               </div>
@@ -1281,7 +1292,28 @@ function ProductsTab() {
                   placeholder='50'
                   onChange={(e) => {
                     set('bottle_ml', e.target.value)
-                    recalc(form.paid_amount, e.target.value)
+                    recalc(form.paid_amount, e.target.value, form.margin)
+                  }}
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>
+                  Margin %
+                  <span style={{ color: 'var(--gold)', fontWeight: 600, marginLeft: 4 }}>
+                    {form.margin}%
+                  </span>
+                </label>
+                <input
+                  style={{ ...S.inp, color: 'var(--gold)', fontWeight: 600 }}
+                  type='number'
+                  min='0'
+                  max='80'
+                  step='1'
+                  value={form.margin}
+                  onChange={(e) => {
+                    const m = Number(e.target.value)
+                    set('margin', m)
+                    recalc(form.paid_amount, form.bottle_ml, m)
                   }}
                 />
               </div>
@@ -1290,8 +1322,8 @@ function ProductsTab() {
             {/* Price fields — gold tint, user can override */}
             <div
               style={{
-                background: 'var(--gold-04)',
-                border: '0.5px solid var(--gold-12)',
+                background: 'rgba(176,144,96,0.04)',
+                border: '0.5px solid rgba(176,144,96,0.12)',
                 borderRadius: 6,
                 padding: '12px',
                 marginBottom: 12
@@ -1345,7 +1377,9 @@ function ProductsTab() {
               <div>
                 <label style={S.lbl}>
                   MRP — Full Bottle (₹){' '}
-                  <span style={{ color: 'var(--w25)', fontWeight: 400 }}>
+                  <span
+                    style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 400 }}
+                  >
                     optional
                   </span>
                 </label>
@@ -1393,9 +1427,9 @@ function ProductsTab() {
                 }}
                 style={{
                   ...S.btn,
-                  background: 'var(--w05)',
-                  color: 'var(--w50)',
-                  border: '0.5px solid var(--w10)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.5)',
+                  border: '0.5px solid rgba(255,255,255,0.1)',
                   padding: '9px 20px',
                   fontSize: 12
                 }}
@@ -1424,7 +1458,7 @@ function ProductsTab() {
       <div
         style={{
           fontSize: 11,
-          color: 'var(--w30)',
+          color: 'rgba(255,255,255,0.3)',
           marginBottom: 10
         }}
       >
@@ -1432,7 +1466,9 @@ function ProductsTab() {
       </div>
 
       {loading ? (
-        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
+        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
+          Loading...
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {filtered.map((p) => (
@@ -1483,7 +1519,7 @@ function ProductsTab() {
                   <div
                     style={{
                       fontSize: 13,
-                      color: 'var(--w85)',
+                      color: 'rgba(255,255,255,0.85)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
@@ -1491,9 +1527,13 @@ function ProductsTab() {
                   >
                     {p.name}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--w35)' }}>
+                  <div
+                    style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}
+                  >
                     ₹{p.p5} / ₹{p.p10} / ₹{p.p20} ·{' '}
-                    <span style={{ color: 'var(--w20)' }}>{p.category}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>
+                      {p.category}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1525,9 +1565,9 @@ function ProductsTab() {
                     padding: '4px 8px',
                     background: p.is_new
                       ? 'rgba(100,160,255,0.15)'
-                      : 'var(--w04)',
-                    color: p.is_new ? '#6aa0ff' : 'var(--w30)',
-                    border: `0.5px solid ${p.is_new ? 'rgba(100,160,255,0.3)' : 'var(--w10)'}`
+                      : 'rgba(255,255,255,0.04)',
+                    color: p.is_new ? '#6aa0ff' : 'rgba(255,255,255,0.3)',
+                    border: `0.5px solid ${p.is_new ? 'rgba(100,160,255,0.3)' : 'rgba(255,255,255,0.1)'}`
                   }}
                 >
                   {p.is_new ? '★ New' : '☆ New'}
@@ -1541,8 +1581,8 @@ function ProductsTab() {
                     background: p.sold_out
                       ? 'rgba(76,175,125,0.15)'
                       : 'rgba(220,80,80,0.15)',
-                    color: p.sold_out ? 'var(--green-txt)' : '#dc5050',
-                    border: `0.5px solid ${p.sold_out ? 'var(--green-br)' : 'rgba(220,80,80,0.3)'}`
+                    color: p.sold_out ? '#4caf7d' : '#dc5050',
+                    border: `0.5px solid ${p.sold_out ? 'rgba(76,175,125,0.3)' : 'rgba(220,80,80,0.3)'}`
                   }}
                 >
                   {p.sold_out ? 'Unmark' : 'Sold Out'}
@@ -1553,9 +1593,9 @@ function ProductsTab() {
                     ...S.btn,
                     fontSize: 10,
                     padding: '4px 8px',
-                    background: 'var(--w05)',
-                    color: 'var(--w50)',
-                    border: '0.5px solid var(--w10)'
+                    background: 'rgba(255,255,255,0.05)',
+                    color: 'rgba(255,255,255,0.5)',
+                    border: '0.5px solid rgba(255,255,255,0.1)'
                   }}
                 >
                   Edit
@@ -1568,7 +1608,7 @@ function ProductsTab() {
                     padding: '4px 8px',
                     background: 'rgba(220,80,80,0.1)',
                     color: '#dc5050',
-                    border: '0.5px solid var(--red-br)'
+                    border: '0.5px solid rgba(220,80,80,0.2)'
                   }}
                 >
                   ✕
@@ -1710,8 +1750,8 @@ function PartialsTab() {
           marginBottom: 16
         }}
       >
-        <div style={{ fontSize: 13, color: 'var(--w50)' }}>
-          <span style={{ color: 'var(--green-txt)' }}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+          <span style={{ color: '#4caf7d' }}>
             {partials.filter((p) => p.visible).length} live
           </span>
           {' · '}
@@ -1743,231 +1783,163 @@ function PartialsTab() {
             textTransform: 'uppercase'
           }}
         >
-          {showAdd ? '+ Add Partial' : '+ Add Partial'}
+          {showAdd ? 'Cancel' : '+ Add Partial'}
         </button>
       </div>
 
       {showAdd && (
         <div
           style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 300,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={() => {
-            setShowAdd(false)
-            setEditId(null)
+            background: 'rgba(176,144,96,0.05)',
+            border: '0.5px solid rgba(176,144,96,0.2)',
+            borderRadius: 8,
+            padding: '1.25rem',
+            marginBottom: 20
           }}
         >
           <div
             style={{
-              background: 'var(--bg2)',
-              border: '0.5px solid var(--gold-25)',
-              borderRadius: 10,
-              padding: '1.75rem',
-              width: '100%',
-              maxWidth: 620,
-              maxHeight: '90vh',
-              overflowY: 'auto'
+              fontSize: 11,
+              color: 'var(--gold)',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              marginBottom: 14
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--gold)',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  fontWeight: 600
-                }}
-              >
-                {editId ? 'Edit Partial' : 'New Partial'}
-              </div>
-              <button
-                onClick={() => {
-                  setShowAdd(false)
-                  setEditId(null)
-                }}
-                style={{
-                  ...S.btn,
-                  background: 'var(--w06)',
-                  border: '0.5px solid var(--w12)',
-                  color: 'var(--w60)',
-                  width: 28,
-                  height: 28,
-                  padding: 0,
-                  fontSize: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 4
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 2fr',
-                gap: 10,
-                marginBottom: 10
-              }}
-            >
-              <div>
-                <label style={S.lbl}>Brand</label>
-                <input
-                  style={S.inp}
-                  value={form.brand}
-                  onChange={(e) => set('brand', e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={S.lbl}>Name</label>
-                <input
-                  style={S.inp}
-                  value={form.name}
-                  onChange={(e) => set('name', e.target.value)}
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label style={S.lbl}>Notes</label>
+            {editId ? 'Edit Partial' : 'New Partial'}
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 2fr',
+              gap: 10,
+              marginBottom: 10
+            }}
+          >
+            <div>
+              <label style={S.lbl}>Brand</label>
               <input
                 style={S.inp}
-                value={form.notes}
-                onChange={(e) => set('notes', e.target.value)}
+                value={form.brand}
+                onChange={(e) => set('brand', e.target.value)}
               />
             </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
-                gap: 10,
-                marginBottom: 10
-              }}
-            >
-              <div>
-                <label style={S.lbl}>Full Bottle (ml)</label>
-                <input
-                  style={S.inp}
-                  type='number'
-                  value={form.full_ml}
-                  onChange={(e) => set('full_ml', e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={S.lbl}>ml Remaining</label>
-                <input
-                  style={S.inp}
-                  type='number'
-                  value={form.ml_left}
-                  onChange={(e) => set('ml_left', e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={S.lbl}>Price (₹)</label>
-                <input
-                  style={S.inp}
-                  type='number'
-                  value={form.price}
-                  onChange={(e) => set('price', e.target.value)}
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-              <label style={S.lbl}>Condition note</label>
+            <div>
+              <label style={S.lbl}>Name</label>
               <input
                 style={S.inp}
-                value={form.condition}
-                onChange={(e) => set('condition', e.target.value)}
-                placeholder='Good condition — 40ml remaining'
+                value={form.name}
+                onChange={(e) => set('name', e.target.value)}
               />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={S.lbl}>Image URL</label>
-              <input
-                style={S.inp}
-                value={form.image_url}
-                onChange={(e) => set('image_url', e.target.value)}
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                marginBottom: 20
-              }}
-            >
-              <input
-                type='checkbox'
-                id='vis'
-                checked={form.visible}
-                onChange={(e) => set('visible', e.target.checked)}
-              />
-              <label
-                htmlFor='vis'
-                style={{ fontSize: 12, color: 'var(--w60)', cursor: 'pointer' }}
-              >
-                Make visible on site immediately
-              </label>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={savePartial}
-                style={{
-                  ...S.btn,
-                  background: '#b09060',
-                  color: '#fff',
-                  padding: '9px 20px',
-                  fontSize: 12,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  flex: 1
-                }}
-              >
-                {editId ? 'Save Changes' : 'Add Partial'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowAdd(false)
-                  setEditId(null)
-                }}
-                style={{
-                  ...S.btn,
-                  background: 'var(--w06)',
-                  border: '0.5px solid var(--w12)',
-                  color: 'var(--w60)',
-                  padding: '9px 20px',
-                  fontSize: 12
-                }}
-              >
-                Cancel
-              </button>
             </div>
           </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={S.lbl}>Notes</label>
+            <input
+              style={S.inp}
+              value={form.notes}
+              onChange={(e) => set('notes', e.target.value)}
+            />
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 10,
+              marginBottom: 10
+            }}
+          >
+            <div>
+              <label style={S.lbl}>Full Bottle (ml)</label>
+              <input
+                style={S.inp}
+                type='number'
+                value={form.full_ml}
+                onChange={(e) => set('full_ml', e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={S.lbl}>ml Remaining</label>
+              <input
+                style={S.inp}
+                type='number'
+                value={form.ml_left}
+                onChange={(e) => set('ml_left', e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={S.lbl}>Price (₹)</label>
+              <input
+                style={S.inp}
+                type='number'
+                value={form.price}
+                onChange={(e) => set('price', e.target.value)}
+              />
+            </div>
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={S.lbl}>Condition note</label>
+            <input
+              style={S.inp}
+              value={form.condition}
+              onChange={(e) => set('condition', e.target.value)}
+              placeholder='Good condition — 40ml remaining'
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={S.lbl}>Image URL</label>
+            <input
+              style={S.inp}
+              value={form.image_url}
+              onChange={(e) => set('image_url', e.target.value)}
+            />
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginBottom: 14
+            }}
+          >
+            <input
+              type='checkbox'
+              id='vis'
+              checked={form.visible}
+              onChange={(e) => set('visible', e.target.checked)}
+            />
+            <label
+              htmlFor='vis'
+              style={{
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.6)',
+                cursor: 'pointer'
+              }}
+            >
+              Make visible on site immediately
+            </label>
+          </div>
+          <button
+            onClick={savePartial}
+            style={{
+              ...S.btn,
+              background: '#b09060',
+              color: '#fff',
+              padding: '9px 20px',
+              fontSize: 12,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase'
+            }}
+          >
+            {editId ? 'Save Changes' : 'Add Partial'}
+          </button>
         </div>
       )}
 
       {loading ? (
-        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
+        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
+          Loading...
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {partials.map((p) => {
@@ -1975,7 +1947,7 @@ function PartialsTab() {
             const fullMl = Number(p.full_ml) || 1
             const pct = Math.min(100, Math.round((mlLeft / fullMl) * 100))
             const color =
-              pct > 50 ? 'var(--green-txt)' : pct > 25 ? '#b09060' : '#dc5050'
+              pct > 50 ? '#4caf7d' : pct > 25 ? '#b09060' : '#dc5050'
             return (
               <div
                 key={p.id}
@@ -2015,15 +1987,19 @@ function PartialsTab() {
                           borderRadius: 2,
                           background: p.visible
                             ? 'rgba(76,175,125,0.15)'
-                            : 'var(--w05)',
-                          color: p.visible ? 'var(--green-txt)' : 'var(--w30)',
-                          border: `0.5px solid ${p.visible ? 'var(--green-br)' : 'var(--w10)'}`
+                            : 'rgba(255,255,255,0.05)',
+                          color: p.visible
+                            ? '#4caf7d'
+                            : 'rgba(255,255,255,0.3)',
+                          border: `0.5px solid ${p.visible ? 'rgba(76,175,125,0.3)' : 'rgba(255,255,255,0.1)'}`
                         }}
                       >
                         {p.visible ? 'LIVE' : 'HIDDEN'}
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--w85)' }}>
+                    <div
+                      style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}
+                    >
                       {p.name}
                     </div>
                     <div
@@ -2038,7 +2014,7 @@ function PartialsTab() {
                         style={{
                           flex: 1,
                           height: 3,
-                          background: 'var(--w08)',
+                          background: 'rgba(255,255,255,0.08)',
                           borderRadius: 2
                         }}
                       >
@@ -2075,8 +2051,8 @@ function PartialsTab() {
                         background: p.visible
                           ? 'rgba(220,80,80,0.1)'
                           : 'rgba(76,175,125,0.1)',
-                        color: p.visible ? '#dc5050' : 'var(--green-txt)',
-                        border: `0.5px solid ${p.visible ? 'var(--red-br)' : 'rgba(76,175,125,0.2)'}`
+                        color: p.visible ? '#dc5050' : '#4caf7d',
+                        border: `0.5px solid ${p.visible ? 'rgba(220,80,80,0.2)' : 'rgba(76,175,125,0.2)'}`
                       }}
                     >
                       {p.visible ? 'Hide' : 'Go Live'}
@@ -2087,9 +2063,9 @@ function PartialsTab() {
                         ...S.btn,
                         fontSize: 10,
                         padding: '4px 8px',
-                        background: 'var(--w04)',
-                        color: 'var(--w40)',
-                        border: '0.5px solid var(--w10)'
+                        background: 'rgba(255,255,255,0.04)',
+                        color: 'rgba(255,255,255,0.4)',
+                        border: '0.5px solid rgba(255,255,255,0.1)'
                       }}
                     >
                       {p.sold_out ? 'Unmark' : 'Sold Out'}
@@ -2100,9 +2076,9 @@ function PartialsTab() {
                         ...S.btn,
                         fontSize: 10,
                         padding: '4px 8px',
-                        background: 'var(--w04)',
-                        color: 'var(--w40)',
-                        border: '0.5px solid var(--w10)'
+                        background: 'rgba(255,255,255,0.04)',
+                        color: 'rgba(255,255,255,0.4)',
+                        border: '0.5px solid rgba(255,255,255,0.1)'
                       }}
                     >
                       Edit
@@ -2115,7 +2091,7 @@ function PartialsTab() {
                         padding: '4px 8px',
                         background: 'rgba(220,80,80,0.1)',
                         color: '#dc5050',
-                        border: '0.5px solid var(--red-br)'
+                        border: '0.5px solid rgba(220,80,80,0.2)'
                       }}
                     >
                       ✕
@@ -2256,7 +2232,7 @@ function StockTab() {
         empty: '#666',
         critical: '#dc5050',
         low: '#b09060',
-        good: 'var(--green-txt)'
+        good: '#4caf7d'
       }[status]
       return { ...b, used, remaining, pct, status, color, canFulfil }
     })
@@ -2278,8 +2254,8 @@ function StockTab() {
       {autoSoldOutLog.length > 0 && (
         <div
           style={{
-            background: 'var(--gold-08)',
-            border: '0.5px solid var(--gold-25)',
+            background: 'rgba(176,144,96,0.08)',
+            border: '0.5px solid rgba(176,144,96,0.25)',
             borderRadius: 6,
             padding: '10px 14px',
             marginBottom: 20
@@ -2297,7 +2273,10 @@ function StockTab() {
             ⚡ Auto sold-out triggered
           </div>
           {autoSoldOutLog.map((msg, i) => (
-            <div key={i} style={{ fontSize: 12, color: 'var(--w60)' }}>
+            <div
+              key={i}
+              style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}
+            >
               • {msg}
             </div>
           ))}
@@ -2316,7 +2295,7 @@ function StockTab() {
           <div
             style={{
               fontSize: 18,
-              color: 'var(--w90)',
+              color: 'rgba(255,255,255,0.9)',
               fontFamily: 'var(--ff-serif)'
             }}
           >
@@ -2330,7 +2309,7 @@ function StockTab() {
           <div
             style={{
               fontSize: 11,
-              color: 'var(--w30)',
+              color: 'rgba(255,255,255,0.3)',
               marginTop: 4
             }}
           >
@@ -2357,8 +2336,8 @@ function StockTab() {
       {showAdd && (
         <div
           style={{
-            background: 'var(--gold-05)',
-            border: '0.5px solid var(--gold-20)',
+            background: 'rgba(176,144,96,0.05)',
+            border: '0.5px solid rgba(176,144,96,0.2)',
             borderRadius: 8,
             padding: '1.25rem',
             marginBottom: 20
@@ -2428,7 +2407,9 @@ function StockTab() {
       )}
 
       {loading ? (
-        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
+        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
+          Loading...
+        </div>
       ) : (
         <div
           style={{
@@ -2443,7 +2424,7 @@ function StockTab() {
               style={{
                 ...S.card,
                 opacity: b.status === 'empty' ? 0.6 : 1,
-                border: `0.5px solid ${b.status === 'critical' || b.status === 'empty' ? 'rgba(220,80,80,0.25)' : 'var(--w08)'}`
+                border: `0.5px solid ${b.status === 'critical' || b.status === 'empty' ? 'rgba(220,80,80,0.25)' : 'rgba(255,255,255,0.08)'}`
               }}
             >
               <div
@@ -2460,7 +2441,7 @@ function StockTab() {
               <div
                 style={{
                   fontSize: 14,
-                  color: 'var(--w90)',
+                  color: 'rgba(255,255,255,0.9)',
                   fontFamily: 'var(--ff-serif)',
                   marginBottom: 10
                 }}
@@ -2475,7 +2456,9 @@ function StockTab() {
                     marginBottom: 4
                   }}
                 >
-                  <span style={{ fontSize: 11, color: 'var(--w40)' }}>
+                  <span
+                    style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}
+                  >
                     {b.remaining.toFixed(0)}ml left of {b.start_ml}ml
                   </span>
                   <span
@@ -2487,7 +2470,7 @@ function StockTab() {
                 <div
                   style={{
                     height: 5,
-                    background: 'var(--w07)',
+                    background: 'rgba(255,255,255,0.07)',
                     borderRadius: 3
                   }}
                 >
@@ -2510,7 +2493,9 @@ function StockTab() {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: 10, color: 'var(--w30)' }}>
+                  <span
+                    style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}
+                  >
                     Used: {b.used}ml{' '}
                     {b.used > 0
                       ? `(~${Math.floor(b.used / 5)} × 5ml decants)`
@@ -2548,7 +2533,7 @@ function StockTab() {
                 <div
                   style={{
                     fontSize: 10,
-                    color: 'var(--w20)',
+                    color: 'rgba(255,255,255,0.2)',
                     marginTop: 6
                   }}
                 >
@@ -2636,7 +2621,7 @@ function PricingTab() {
               <div
                 style={{
                   fontSize: 11,
-                  color: 'var(--w40)',
+                  color: 'rgba(255,255,255,0.4)',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   marginBottom: 4
@@ -2758,7 +2743,7 @@ function DiscountsTab() {
                 fontSize: 9,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                color: 'var(--w35)',
+                color: 'rgba(255,255,255,0.35)',
                 marginBottom: 6
               }}
             >
@@ -2767,7 +2752,7 @@ function DiscountsTab() {
             <div
               style={{
                 fontSize: 22,
-                color: 'var(--w90)',
+                color: 'rgba(255,255,255,0.9)',
                 fontWeight: 300,
                 fontFamily: 'var(--ff-serif)'
               }}
@@ -2805,8 +2790,8 @@ function DiscountsTab() {
       {showAdd && (
         <div
           style={{
-            background: 'var(--gold-05)',
-            border: '0.5px solid var(--gold-20)',
+            background: 'rgba(176,144,96,0.05)',
+            border: '0.5px solid rgba(176,144,96,0.2)',
             borderRadius: 8,
             padding: '1.25rem',
             marginBottom: 20
@@ -2875,7 +2860,9 @@ function DiscountsTab() {
             <div>
               <label style={S.lbl}>
                 Min Order (₹){' '}
-                <span style={{ color: 'var(--w25)' }}>optional</span>
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  optional
+                </span>
               </label>
               <input
                 style={S.inp}
@@ -2887,7 +2874,10 @@ function DiscountsTab() {
             </div>
             <div>
               <label style={S.lbl}>
-                Max Uses <span style={{ color: 'var(--w25)' }}>optional</span>
+                Max Uses{' '}
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  optional
+                </span>
               </label>
               <input
                 style={S.inp}
@@ -2899,7 +2889,10 @@ function DiscountsTab() {
             </div>
             <div>
               <label style={S.lbl}>
-                Expires <span style={{ color: 'var(--w25)' }}>optional</span>
+                Expires{' '}
+                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  optional
+                </span>
               </label>
               <input
                 style={{ ...S.inp, colorScheme: 'dark' }}
@@ -2911,7 +2904,7 @@ function DiscountsTab() {
             </div>
           </div>
           {createError && (
-            <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: '#e05a5a', marginBottom: 8 }}>
               {createError}
             </div>
           )}
@@ -2934,7 +2927,9 @@ function DiscountsTab() {
 
       {/* Codes list */}
       {loading ? (
-        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
+        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
+          Loading...
+        </div>
       ) : codes.length === 0 ? (
         <div
           style={{ textAlign: 'center', padding: '3rem', color: 'var(--t3)' }}
@@ -2951,7 +2946,7 @@ function DiscountsTab() {
               ? '#555'
               : expired || maxed
                 ? '#dc5050'
-                : 'var(--green-txt)'
+                : '#4caf7d'
             const statusLabel = !dc.active
               ? 'Inactive'
               : expired
@@ -3008,7 +3003,7 @@ function DiscountsTab() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: 'var(--w50)',
+                      color: 'rgba(255,255,255,0.5)',
                       display: 'flex',
                       gap: 16,
                       flexWrap: 'wrap'
@@ -3016,7 +3011,7 @@ function DiscountsTab() {
                   >
                     <span
                       style={{
-                        color: 'var(--w80)',
+                        color: 'rgba(255,255,255,0.8)',
                         fontWeight: 500
                       }}
                     >
@@ -3047,8 +3042,8 @@ function DiscountsTab() {
                       background: dc.active
                         ? 'rgba(220,80,80,0.1)'
                         : 'rgba(76,175,125,0.1)',
-                      color: dc.active ? '#dc5050' : 'var(--green-txt)',
-                      border: `0.5px solid ${dc.active ? 'var(--red-br)' : 'rgba(76,175,125,0.2)'}`
+                      color: dc.active ? '#dc5050' : '#4caf7d',
+                      border: `0.5px solid ${dc.active ? 'rgba(220,80,80,0.2)' : 'rgba(76,175,125,0.2)'}`
                     }}
                   >
                     {dc.active ? 'Disable' : 'Enable'}
@@ -3061,7 +3056,7 @@ function DiscountsTab() {
                       padding: '4px 8px',
                       background: 'rgba(220,80,80,0.1)',
                       color: '#dc5050',
-                      border: '0.5px solid var(--red-br)'
+                      border: '0.5px solid rgba(220,80,80,0.2)'
                     }}
                   >
                     ✕
@@ -3227,8 +3222,8 @@ export default function AdminPage() {
       >
         <div
           style={{
-            background: 'var(--bg2)',
-            border: '0.5px solid var(--gold-20)',
+            background: '#0e0c0a',
+            border: '0.5px solid rgba(176,144,96,0.2)',
             borderRadius: 10,
             padding: '2rem',
             width: 340
@@ -3263,7 +3258,7 @@ export default function AdminPage() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: 'var(--red)',
+                    color: '#e05a5a',
                     marginBottom: 10,
                     textAlign: 'center'
                   }}
@@ -3315,7 +3310,7 @@ export default function AdminPage() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: 'var(--red)',
+                    color: '#e05a5a',
                     marginBottom: 10,
                     textAlign: 'center'
                   }}
@@ -3330,7 +3325,8 @@ export default function AdminPage() {
                   ...S.btn,
                   width: '100%',
                   padding: '12px',
-                  background: otp.length < 6 ? 'var(--gold-40)' : '#b09060',
+                  background:
+                    otp.length < 6 ? 'rgba(176,144,96,0.4)' : '#b09060',
                   color: '#fff',
                   fontSize: 13,
                   letterSpacing: '0.1em',
@@ -3366,8 +3362,8 @@ export default function AdminPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <div
         style={{
-          background: 'var(--bg2)',
-          borderBottom: '0.5px solid var(--w06)',
+          background: '#0e0c0a',
+          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
           padding: '1rem 2rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -3392,10 +3388,10 @@ export default function AdminPage() {
             style={{
               ...S.btn,
               fontSize: 11,
-              color: 'var(--w40)',
-              background: 'var(--w04)',
+              color: 'rgba(255,255,255,0.4)',
+              background: 'rgba(255,255,255,0.04)',
               padding: '5px 12px',
-              border: '0.5px solid var(--w10)'
+              border: '0.5px solid rgba(255,255,255,0.1)'
             }}
           >
             Sign out
@@ -3429,7 +3425,7 @@ export default function AdminPage() {
                 borderBottom:
                   tab === id ? '2px solid #b09060' : '2px solid transparent',
                 borderRadius: 0,
-                color: tab === id ? '#b09060' : 'var(--w40)',
+                color: tab === id ? '#b09060' : 'rgba(255,255,255,0.4)',
                 padding: '10px 18px',
                 fontSize: 11,
                 letterSpacing: '0.1em',
