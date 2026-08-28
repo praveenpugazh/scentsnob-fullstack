@@ -2413,7 +2413,6 @@ function ProductsTab() {
 
   const toggleIsNew = async (p) => {
     const markingNew = !p.is_new
-    // If marking as new, also make visible — can't show in New Arrivals if hidden
     const patch = { is_new: markingNew }
     if (markingNew && !p.visible) patch.visible = true
 
@@ -2422,12 +2421,25 @@ function ProductsTab() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch)
     })
+
+    if (!r.ok) {
+      const err = await r.json()
+      showToast('Failed: ' + (err.error || JSON.stringify(err)), 'error')
+      return
+    }
+
     const updated = await r.json()
+    // Optimistically apply — if DB returns null for is_new use our intent
+    const merged = { ...updated, is_new: updated.is_new ?? markingNew }
     setProducts((ps) =>
-      ps.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
+      ps.map((x) => (x.id === p.id ? { ...x, ...merged } : x))
     )
-    if (markingNew && !p.visible) {
-      showToast(`${p.brand} ${p.name} marked New + made visible`)
+    if (markingNew) {
+      showToast(
+        `${p.brand} ${p.name} added to New Arrivals${!p.visible ? ' + made visible' : ''}`
+      )
+    } else {
+      showToast(`${p.brand} ${p.name} removed from New Arrivals`)
     }
   }
 
