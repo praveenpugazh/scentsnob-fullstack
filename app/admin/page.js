@@ -2399,6 +2399,19 @@ function ProductsTab() {
     setProducts((p) => p.filter((x) => x.id !== id))
   }
 
+  const toggleVisible = async (p) => {
+    const r = await fetch(`/api/products/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visible: !p.visible })
+    })
+    const updated = await r.json()
+    setProducts((ps) =>
+      ps.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
+    )
+    showToast(`${p.brand} ${p.name} ${!p.visible ? 'made visible' : 'hidden'}`)
+  }
+
   const toggleSoldOut = async (p) => {
     const r = await fetch(`/api/products/${p.id}`, {
       method: 'PATCH',
@@ -2608,7 +2621,7 @@ function ProductsTab() {
           p20,
           p30,
           mrp: row.mrp ? Number(row.mrp) : null,
-          visible: false // start hidden, you decide when to publish
+          visible: true // visible by default — hide manually if needed
         })
       }
 
@@ -3318,10 +3331,10 @@ function ProductsTab() {
                             <td
                               style={{
                                 padding: '6px 10px',
-                                color: 'var(--t3)'
+                                color: 'var(--green-txt)'
                               }}
                             >
-                              Hidden
+                              Visible
                             </td>
                           </tr>
                         )
@@ -3993,6 +4006,26 @@ function ProductsTab() {
                     ⚠ Marked New but Hidden — won't show on site
                   </span>
                 )}
+                {/* Visible toggle */}
+                <button
+                  onClick={() => toggleVisible(p)}
+                  title={
+                    p.visible
+                      ? 'Hide from storefront'
+                      : 'Make visible on storefront'
+                  }
+                  style={{
+                    ...S.btn,
+                    fontSize: 10,
+                    padding: '4px 10px',
+                    background: p.visible ? 'var(--green-bg)' : 'var(--red-bg)',
+                    color: p.visible ? 'var(--green-txt)' : '#dc5050',
+                    border: `0.5px solid ${p.visible ? 'var(--green-br)' : 'var(--red-br)'}`,
+                    fontWeight: 600
+                  }}
+                >
+                  {p.visible ? '● Live' : '○ Hidden'}
+                </button>
                 <button
                   onClick={() => toggleIsNew(p)}
                   title={
