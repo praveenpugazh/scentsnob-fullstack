@@ -1717,6 +1717,12 @@ function ProductsTab() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importRows, setImportRows] = useState([]) // parsed preview rows
+  const [importErrors, setImportErrors] = useState([])
+  const [importing, setImporting] = useState(false)
+  const [importDone, setImportDone] = useState(null) // { created, skipped }
+  const [dragOver, setDragOver] = useState(false)
   const [form, setForm] = useState({
     brand: '',
     name: '',
@@ -1898,6 +1904,206 @@ function ProductsTab() {
     setShowAdd(true)
   }
 
+  // ── Excel Import ──────────────────────────────────────────────────
+  const downloadTemplate = () => {
+    // CSV template with headers + one example row
+    const headers = [
+      'brand',
+      'name',
+      'category',
+      'notes',
+      'paid_amount',
+      'bottle_ml',
+      'ml_remaining',
+      'margin_pct',
+      'p5',
+      'p10',
+      'p20',
+      'p30',
+      'mrp'
+    ]
+    const example = [
+      'Xerjoff',
+      'Naxos',
+      'niche',
+      'Tobacco Vanilla Honey',
+      '18000',
+      '100',
+      '90',
+      '5',
+      '',
+      '',
+      '',
+      '',
+      '35000'
+    ]
+    const hint = [
+      '# Brand name',
+      '# Fragrance name',
+      '# niche / designer / dupe',
+      '# Main notes (comma separated)',
+      '# What you paid for the bottle (₹)',
+      '# Bottle size in ml',
+      '# How much is left to sell (leave blank = bottle_ml - 10)',
+      '# Your margin % (leave blank = 3)',
+      '# 5ml price (leave blank to auto-calc)',
+      '# 10ml price',
+      '# 20ml price',
+      '# 30ml price',
+      '# Full bottle MRP (optional)'
+    ]
+    const csv = [hint.join(','), headers.join(','), example.join(',')].join(
+      '\r\n'
+    )
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'scent_snob_products_template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const parseFile = (file) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target.result
+      const lines = text
+        .split(/\r?\n/)
+        .filter((l) => l.trim() && !l.trim().startsWith('#'))
+      if (lines.length < 2) {
+        setImportErrors(['File appears empty or has no data rows'])
+        return
+      }
+
+      const headers = lines[0]
+        .split(',')
+        .map((h) => h.trim().toLowerCase().replace(/\s+/g, '_'))
+      const rows = []
+      const errs = []
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map((c) => c.trim())
+        if (cols.every((c) => !c)) continue // skip blank lines
+        const row = {}
+        headers.forEach((h, idx) => {
+          row[h] = cols[idx] || ''
+        })
+
+        // Validate mandatory fields
+        const rowErrs = []
+        if (!row.brand) rowErrs.push('brand required')
+        if (!row.name) rowErrs.push('name required')
+        if (!row.ml_remaining && !row.bottle_ml)
+          rowErrs.push('either ml_remaining or bottle_ml required')
+        if (!row.p5 && !row.p10 && !row.paid_amount)
+          rowErrs.push(
+            'either prices (p5/p10) or paid_amount needed to calculate prices'
+          )
+
+        if (rowErrs.length) {
+          errs.push(
+            `Row ${i + 1} (${row.brand} ${row.name}): ${rowErrs.join(', ')}`
+          )
+          continue
+        }
+
+        // Build product payload
+        const paidAmt = Number(row.paid_amount) || 0
+        const bottleMl = Number(row.bottle_ml) || 0
+        const marginPct =
+          row.margin_pct !== '' ? Number(row.margin_pct) / 100 : 0.03
+
+        let { p5, p10, p20, p30 } = { p5: 0, p10: 0, p20: 0, p30: 0 }
+        if (paidAmt && bottleMl) {
+          const calc = calcPrices(paidAmt, bottleMl, marginPct)
+          p5 = calc.p5
+          p10 = calc.p10
+          p20 = calc.p20
+          p30 = calc.p30
+        }
+        // Manual overrides
+        if (row.p5) p5 = Number(row.p5)
+        if (row.p10) p10 = Number(row.p10)
+        if (row.p20) p20 = Number(row.p20)
+        if (row.p30) p30 = Number(row.p30)
+
+        const mlRemaining =
+          row.ml_remaining !== ''
+            ? Number(row.ml_remaining)
+            : bottleMl
+              ? Math.max(0, bottleMl - 10)
+              : null
+
+        rows.push({
+          brand: row.brand,
+          name: row.name,
+          category: row.category || 'niche',
+          notes: row.notes || '',
+          paid_amount: paidAmt || null,
+          bottle_ml: bottleMl || null,
+          ml_remaining: mlRemaining,
+          p5,
+          p10,
+          p20,
+          p30,
+          mrp: row.mrp ? Number(row.mrp) : null,
+          visible: false // start hidden, you decide when to publish
+        })
+      }
+
+      setImportRows(rows)
+      setImportErrors(errs)
+      setImportDone(null)
+    }
+    reader.readAsText(file)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) parseFile(file)
+  }
+
+  const handleFileInput = (e) => {
+    const file = e.target.files[0]
+    if (file) parseFile(file)
+  }
+
+  const runImport = async () => {
+    if (!importRows.length) return
+    setImporting(true)
+    let created = 0,
+      skipped = 0
+    for (const row of importRows) {
+      // Skip if brand+name already exists
+      const exists = products.some(
+        (p) =>
+          p.brand.toLowerCase() === row.brand.toLowerCase() &&
+          p.name.toLowerCase() === row.name.toLowerCase()
+      )
+      if (exists) {
+        skipped++
+        continue
+      }
+      const r = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(row)
+      })
+      if (r.ok) {
+        const created_product = await r.json()
+        setProducts((ps) => [...ps, created_product])
+        created++
+      } else skipped++
+    }
+    setImportDone({ created, skipped })
+    setImporting(false)
+    setImportRows([])
+  }
+  // ── End Excel Import ──────────────────────────────────────────────
+
   const filtered = products.filter(
     (p) =>
       !search ||
@@ -1967,7 +2173,561 @@ function ProductsTab() {
         >
           {showAdd ? 'Cancel' : '+ Add Product'}
         </button>
+        <button
+          onClick={() => {
+            setShowImport(true)
+            setImportRows([])
+            setImportErrors([])
+            setImportDone(null)
+          }}
+          style={{
+            ...S.btn,
+            background: 'var(--w08)',
+            border: '0.5px solid var(--w15)',
+            color: 'var(--t2)',
+            padding: '8px 16px',
+            fontSize: 12,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            flexShrink: 0
+          }}
+        >
+          ⬆ Import Excel
+        </button>
       </div>
+
+      {/* Import Modal */}
+      {showImport && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '2rem 1rem',
+            overflowY: 'auto'
+          }}
+          onClick={() => setShowImport(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 660,
+              marginBottom: '2rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: 20
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gold)',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontWeight: 600,
+                    marginBottom: 4
+                  }}
+                >
+                  Import Products from CSV / Excel
+                </div>
+                <div
+                  style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.6 }}
+                >
+                  Upload a .csv file. New products are added as hidden — you
+                  decide when to make them visible.
+                  <br />
+                  Duplicates (same brand + name) are skipped automatically.
+                </div>
+              </div>
+              <button
+                onClick={() => setShowImport(false)}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w08)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--t2)',
+                  width: 28,
+                  height: 28,
+                  padding: 0,
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4,
+                  flexShrink: 0
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Template download */}
+            <div
+              style={{
+                background: 'var(--gold-05)',
+                border: '0.5px solid var(--gold-15)',
+                borderRadius: 6,
+                padding: '12px 14px',
+                marginBottom: 16,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gold)',
+                    fontWeight: 600,
+                    marginBottom: 2
+                  }}
+                >
+                  📋 Download Template
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--t3)' }}>
+                  CSV with all fields + example row + column hints
+                </div>
+              </div>
+              <button
+                onClick={downloadTemplate}
+                style={{
+                  ...S.btn,
+                  background: 'var(--gold)',
+                  color: '#fff',
+                  padding: '7px 16px',
+                  fontSize: 12,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  flexShrink: 0
+                }}
+              >
+                Download
+              </button>
+            </div>
+
+            {/* Required fields callout */}
+            <div
+              style={{
+                background: 'var(--bg3)',
+                border: '0.5px solid var(--w10)',
+                borderRadius: 6,
+                padding: '12px 14px',
+                marginBottom: 16
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  color: 'var(--gold)',
+                  fontWeight: 600,
+                  marginBottom: 8,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                Mandatory columns
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {[
+                  { col: 'brand', desc: 'Brand name e.g. Xerjoff' },
+                  { col: 'name', desc: 'Fragrance name e.g. Naxos' },
+                  {
+                    col: 'bottle_ml OR ml_remaining',
+                    desc: 'How much liquid you have'
+                  },
+                  {
+                    col: 'paid_amount OR p5+p10',
+                    desc: 'Either what you paid (auto-calculates prices) or manual prices'
+                  }
+                ].map(({ col, desc }) => (
+                  <div
+                    key={col}
+                    style={{
+                      background: 'var(--w06)',
+                      border: '0.5px solid var(--gold-15)',
+                      borderRadius: 4,
+                      padding: '4px 10px'
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--gold)',
+                        fontWeight: 600,
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      {col}
+                    </div>
+                    <div
+                      style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}
+                    >
+                      {desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: 'var(--t3)',
+                  marginTop: 10,
+                  lineHeight: 1.7
+                }}
+              >
+                <strong style={{ color: 'var(--t2)' }}>Optional:</strong>{' '}
+                category (niche/designer/dupe), notes, margin_pct, p5, p10, p20,
+                p30, mrp
+                <br />
+                <strong style={{ color: 'var(--t2)' }}>
+                  category default:
+                </strong>{' '}
+                niche &nbsp;|&nbsp;{' '}
+                <strong style={{ color: 'var(--t2)' }}>
+                  margin_pct default:
+                </strong>{' '}
+                3 &nbsp;|&nbsp;{' '}
+                <strong style={{ color: 'var(--t2)' }}>
+                  ml_remaining default:
+                </strong>{' '}
+                bottle_ml − 10
+              </div>
+            </div>
+
+            {/* Drop zone */}
+            {!importRows.length && !importDone && (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragOver(true)
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                style={{
+                  border: `2px dashed ${dragOver ? 'var(--gold)' : 'var(--w15)'}`,
+                  borderRadius: 8,
+                  padding: '2.5rem',
+                  textAlign: 'center',
+                  background: dragOver ? 'var(--gold-04)' : 'var(--bg3)',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  marginBottom: 16
+                }}
+                onClick={() => document.getElementById('excel-upload').click()}
+              >
+                <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
+                <div
+                  style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 4 }}
+                >
+                  Drag & drop your CSV here
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--t3)' }}>
+                  or click to browse
+                </div>
+                <input
+                  id='excel-upload'
+                  type='file'
+                  accept='.csv,.xlsx,.xls'
+                  style={{ display: 'none' }}
+                  onChange={handleFileInput}
+                />
+              </div>
+            )}
+
+            {/* Validation errors */}
+            {importErrors.length > 0 && (
+              <div
+                style={{
+                  background: 'var(--red-bg)',
+                  border: '0.5px solid var(--red-br)',
+                  borderRadius: 6,
+                  padding: '10px 14px',
+                  marginBottom: 14
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--red)',
+                    fontWeight: 600,
+                    marginBottom: 6
+                  }}
+                >
+                  ⚠ {importErrors.length} row
+                  {importErrors.length > 1 ? 's' : ''} had issues and will be
+                  skipped:
+                </div>
+                {importErrors.map((e, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--red)',
+                      marginBottom: 2
+                    }}
+                  >
+                    • {e}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Preview table */}
+            {importRows.length > 0 && !importDone && (
+              <div style={{ marginBottom: 16 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--gold)',
+                    fontWeight: 600,
+                    marginBottom: 10,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Preview — {importRows.length} product
+                  {importRows.length > 1 ? 's' : ''} ready to import
+                </div>
+                <div
+                  style={{
+                    border: '0.5px solid var(--w10)',
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    maxHeight: 280,
+                    overflowY: 'auto'
+                  }}
+                >
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: 11
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ background: 'var(--bg4)' }}>
+                        {[
+                          'Brand',
+                          'Name',
+                          'Category',
+                          'ml Left',
+                          '5ml',
+                          '10ml',
+                          '20ml',
+                          'Visible'
+                        ].map((h) => (
+                          <th
+                            key={h}
+                            style={{
+                              padding: '6px 10px',
+                              textAlign: 'left',
+                              color: 'var(--t3)',
+                              fontWeight: 600,
+                              letterSpacing: '0.08em',
+                              textTransform: 'uppercase',
+                              fontSize: 9,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.map((row, i) => {
+                        const exists = products.some(
+                          (p) =>
+                            p.brand.toLowerCase() === row.brand.toLowerCase() &&
+                            p.name.toLowerCase() === row.name.toLowerCase()
+                        )
+                        return (
+                          <tr
+                            key={i}
+                            style={{
+                              borderBottom: '0.5px solid var(--w06)',
+                              background: exists
+                                ? 'var(--red-bg)'
+                                : 'transparent'
+                            }}
+                          >
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--gold)',
+                                fontWeight: 600
+                              }}
+                            >
+                              {row.brand}
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--t1)'
+                              }}
+                            >
+                              {row.name}{' '}
+                              {exists && (
+                                <span
+                                  style={{ fontSize: 9, color: 'var(--red)' }}
+                                >
+                                  (exists — will skip)
+                                </span>
+                              )}
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--t3)'
+                              }}
+                            >
+                              {row.category}
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color:
+                                  row.ml_remaining <= 15
+                                    ? 'var(--red)'
+                                    : 'var(--t2)'
+                              }}
+                            >
+                              {row.ml_remaining ?? '—'}ml
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--t2)'
+                              }}
+                            >
+                              ₹{row.p5 || '—'}
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--t2)'
+                              }}
+                            >
+                              ₹{row.p10 || '—'}
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--t2)'
+                              }}
+                            >
+                              ₹{row.p20 || '—'}
+                            </td>
+                            <td
+                              style={{
+                                padding: '6px 10px',
+                                color: 'var(--t3)'
+                              }}
+                            >
+                              Hidden
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <button
+                    onClick={runImport}
+                    disabled={importing}
+                    style={{
+                      ...S.btn,
+                      background: 'var(--gold)',
+                      color: '#fff',
+                      padding: '10px 0',
+                      fontSize: 13,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      flex: 1
+                    }}
+                  >
+                    {importing
+                      ? 'Importing...'
+                      : `✓ Import ${importRows.filter((r) => !products.some((p) => p.brand.toLowerCase() === r.brand.toLowerCase() && p.name.toLowerCase() === r.name.toLowerCase())).length} Products`}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImportRows([])
+                      setImportErrors([])
+                    }}
+                    style={{
+                      ...S.btn,
+                      background: 'var(--w08)',
+                      border: '0.5px solid var(--w15)',
+                      color: 'var(--t2)',
+                      padding: '10px 20px',
+                      fontSize: 13
+                    }}
+                  >
+                    Re-upload
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Success */}
+            {importDone && (
+              <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
+                <div
+                  style={{ fontSize: 16, color: 'var(--t1)', marginBottom: 6 }}
+                >
+                  Import complete
+                </div>
+                <div
+                  style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20 }}
+                >
+                  {importDone.created} product
+                  {importDone.created !== 1 ? 's' : ''} added ·{' '}
+                  {importDone.skipped} skipped
+                </div>
+                <div
+                  style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 20 }}
+                >
+                  All imported products are hidden — go to Products list to
+                  review and make them visible.
+                </div>
+                <button
+                  onClick={() => setShowImport(false)}
+                  style={{
+                    ...S.btn,
+                    background: 'var(--gold)',
+                    color: '#fff',
+                    padding: '10px 28px',
+                    fontSize: 13
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Product Modal */}
       {showAdd && (
