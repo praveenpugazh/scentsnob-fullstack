@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { calcPrices, formatINR, DEFAULT_MARGIN } from '@/lib/pricing'
 import { createBrowserSupabase } from '@/lib/supabase'
@@ -54,7 +54,14 @@ function StatusStepper({ status, onChange }) {
   const color = STATUS_COLORS[status] || '#b09060'
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(status) + 1]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        flexWrap: 'wrap'
+      }}
+    >
       <span
         style={{
           fontSize: 10,
@@ -88,19 +95,25 @@ function StatusStepper({ status, onChange }) {
       )}
       {status !== 'Cancelled' && (
         <button
-          onClick={() => onChange('Cancelled')}
+          onClick={() => {
+            if (window.confirm('Mark this order as Cancelled?')) {
+              onChange('Cancelled')
+            }
+          }}
           title='Cancel order'
           style={{
             ...S.btn,
             fontSize: 10,
-            padding: '3px 7px',
+            padding: '3px 10px',
             background: 'var(--red-bg)',
-            color: 'rgba(220,80,80,0.5)',
+            color: '#dc5050',
             border: '0.5px solid var(--red-br)',
-            borderRadius: 20
+            borderRadius: 20,
+            fontWeight: 600,
+            letterSpacing: '0.06em'
           }}
         >
-          ✕
+          Cancel
         </button>
       )}
     </div>
@@ -116,6 +129,10 @@ function OrdersTab() {
 
   // Manual order state
   const [showManual, setShowManual] = useState(false)
+  const [showBulk, setShowBulk] = useState(false)
+  const [bulkRows, setBulkRows] = useState([emptyBulkRow()])
+  const [bulkSaving, setBulkSaving] = useState(false)
+  const [bulkDone, setBulkDone] = useState(null)
   const [products, setProducts] = useState([])
   const [partials, setPartials] = useState([])
   const [saving, setSaving] = useState(false)
@@ -279,6 +296,91 @@ function OrdersTab() {
           )
           .slice(0, 8)
 
+  function emptyBulkRow() {
+    return {
+      customer: '',
+      phone: '',
+      address: '',
+      items: '', // free text e.g. "Khamrah 10ml, Naxos 5ml"
+      total: '', // what they paid total
+      shipping: '160', // shipping charged (0 if free)
+      payment: 'GPay',
+      date: new Date().toISOString().slice(0, 10),
+      notes: ''
+    }
+  }
+
+  const addBulkRow = () => setBulkRows((r) => [...r, emptyBulkRow()])
+  const removeBulkRow = (i) =>
+    setBulkRows((r) => r.filter((_, idx) => idx !== i))
+  const setBulkCell = (i, k, v) =>
+    setBulkRows((r) =>
+      r.map((row, idx) => (idx === i ? { ...row, [k]: v } : row))
+    )
+
+  // Parse free-text items like "Khamrah 10ml, Naxos 5ml x2, Black Afgano 5ml"
+  const parseItems = (text) => {
+    return text
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => {
+        const qtyMatch = s.match(/[xX×](\d+)\s*$/)
+        const qty = qtyMatch ? Number(qtyMatch[1]) : 1
+        const rest = s.replace(/[xX×]\d+\s*$/, '').trim()
+        const sizeMatch = rest.match(/(\d+ml)\s*$/i)
+        const size = sizeMatch ? sizeMatch[1] : ''
+        const name = rest.replace(/\d+ml\s*$/i, '').trim()
+        return { name, size, qty, price: 0, brand: '' }
+      })
+  }
+
+  const submitBulk = async () => {
+    const valid = bulkRows.filter(
+      (r) => r.customer && r.phone && r.items && r.total
+    )
+    if (!valid.length) return
+    setBulkSaving(true)
+    let created = 0
+    for (const row of valid) {
+      const items = parseItems(row.items)
+      const total = Number(row.total)
+      const shipping = Number(row.shipping) || 0
+      const subtotal = total - shipping
+
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+      let orderRef = 'SS-'
+      for (let i = 0; i < 6; i++)
+        orderRef += chars[Math.floor(Math.random() * chars.length)]
+
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_ref: orderRef,
+          customer: row.customer,
+          phone: row.phone,
+          address:
+            row.address || 'WhatsApp community order — address not captured',
+          items,
+          subtotal,
+          shipping,
+          total,
+          status: 'Delivered', // already sold and shipped
+          payment_id: `bulk_${row.payment}_${Date.now()}_${created}`,
+          notes: `WhatsApp community sale · ${row.payment}${row.notes ? ' · ' + row.notes : ''}`,
+          created_at: row.date ? new Date(row.date).toISOString() : undefined
+        })
+      })
+      created++
+    }
+    // Refresh orders
+    const fresh = await fetch('/api/orders').then((r) => r.json())
+    setOrders(Array.isArray(fresh) ? fresh : [])
+    setBulkDone(created)
+    setBulkSaving(false)
+  }
+
   const updateStatus = async (id, status, trackingNumber) => {
     const body = { status }
     if (trackingNumber) body.tracking_number = trackingNumber
@@ -324,6 +426,352 @@ function OrdersTab() {
 
   return (
     <div>
+      {/* Bulk Import Modal */}
+      {showBulk && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '2rem 1rem',
+            overflowY: 'auto'
+          }}
+          onClick={() => setShowBulk(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 900,
+              marginBottom: '2rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: 20
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gold)',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontWeight: 600,
+                    marginBottom: 4
+                  }}
+                >
+                  Bulk Import — WhatsApp / Community Sales
+                </div>
+                <div
+                  style={{ fontSize: 11, color: 'var(--t3)', lineHeight: 1.7 }}
+                >
+                  Fill one row per order. All will be saved as{' '}
+                  <strong style={{ color: 'var(--green-txt)' }}>
+                    Delivered
+                  </strong>{' '}
+                  since they're already sold and shipped.
+                  <br />
+                  Items: comma-separated e.g.{' '}
+                  <code
+                    style={{
+                      background: 'var(--bg3)',
+                      padding: '1px 5px',
+                      borderRadius: 3,
+                      color: 'var(--gold)',
+                      fontSize: 10
+                    }}
+                  >
+                    Khamrah 10ml, Naxos 5ml x2, Black Afgano 5ml
+                  </code>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBulk(false)}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w08)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--t2)',
+                  width: 28,
+                  height: 28,
+                  padding: 0,
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4,
+                  flexShrink: 0
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {bulkDone !== null ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+                <div
+                  style={{ fontSize: 18, color: 'var(--t1)', marginBottom: 8 }}
+                >
+                  {bulkDone} orders imported
+                </div>
+                <div
+                  style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 24 }}
+                >
+                  All saved as Delivered. Revenue and stats updated.
+                </div>
+                <button
+                  onClick={() => setShowBulk(false)}
+                  style={{
+                    ...S.btn,
+                    background: 'var(--gold)',
+                    color: '#fff',
+                    padding: '10px 28px',
+                    fontSize: 13
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Column headers */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      '1.5fr 1fr 1.5fr 2fr 0.8fr 0.8fr 1fr 1fr auto',
+                    gap: 6,
+                    marginBottom: 6,
+                    padding: '0 4px'
+                  }}
+                >
+                  {[
+                    'Customer',
+                    'Phone',
+                    'Address (optional)',
+                    'Items sold',
+                    'Total (₹)',
+                    'Shipping',
+                    'Payment',
+                    'Date',
+                    ''
+                  ].map((h, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: 9,
+                        color: 'var(--t3)',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        fontWeight: 600
+                      }}
+                    >
+                      {h}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Rows */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    marginBottom: 14,
+                    maxHeight: 400,
+                    overflowY: 'auto'
+                  }}
+                >
+                  {bulkRows.map((row, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          '1.5fr 1fr 1.5fr 2fr 0.8fr 0.8fr 1fr 1fr auto',
+                        gap: 6,
+                        alignItems: 'center',
+                        background: 'var(--bg3)',
+                        borderRadius: 6,
+                        padding: '8px 10px',
+                        border: `0.5px solid ${row.customer && row.phone && row.items && row.total ? 'var(--green-br)' : 'var(--w08)'}`
+                      }}
+                    >
+                      <input
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 8px' }}
+                        placeholder='Rahul Sharma'
+                        value={row.customer}
+                        onChange={(e) =>
+                          setBulkCell(i, 'customer', e.target.value)
+                        }
+                      />
+                      <input
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 8px' }}
+                        placeholder='9876543210'
+                        value={row.phone}
+                        onChange={(e) =>
+                          setBulkCell(
+                            i,
+                            'phone',
+                            e.target.value.replace(/\D/g, '').slice(0, 10)
+                          )
+                        }
+                        type='tel'
+                      />
+                      <input
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 8px' }}
+                        placeholder='Chennai, Tamil Nadu'
+                        value={row.address}
+                        onChange={(e) =>
+                          setBulkCell(i, 'address', e.target.value)
+                        }
+                      />
+                      <input
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 8px' }}
+                        placeholder='Khamrah 10ml, Naxos 5ml'
+                        value={row.items}
+                        onChange={(e) =>
+                          setBulkCell(i, 'items', e.target.value)
+                        }
+                      />
+                      <input
+                        style={{
+                          ...S.inp,
+                          fontSize: 11,
+                          padding: '5px 8px',
+                          color: 'var(--gold)',
+                          fontWeight: 600
+                        }}
+                        placeholder='1450'
+                        value={row.total}
+                        onChange={(e) =>
+                          setBulkCell(i, 'total', e.target.value)
+                        }
+                        type='number'
+                      />
+                      <input
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 8px' }}
+                        placeholder='160'
+                        value={row.shipping}
+                        onChange={(e) =>
+                          setBulkCell(i, 'shipping', e.target.value)
+                        }
+                        type='number'
+                      />
+                      <select
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 6px' }}
+                        value={row.payment}
+                        onChange={(e) =>
+                          setBulkCell(i, 'payment', e.target.value)
+                        }
+                      >
+                        {[
+                          'GPay',
+                          'PhonePe',
+                          'Paytm',
+                          'BHIM UPI',
+                          'Cash',
+                          'Bank Transfer',
+                          'Other'
+                        ].map((p) => (
+                          <option key={p}>{p}</option>
+                        ))}
+                      </select>
+                      <input
+                        style={{ ...S.inp, fontSize: 11, padding: '5px 8px' }}
+                        type='date'
+                        value={row.date}
+                        onChange={(e) => setBulkCell(i, 'date', e.target.value)}
+                      />
+                      <button
+                        onClick={() => removeBulkRow(i)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'rgba(220,80,80,0.5)',
+                          cursor: 'pointer',
+                          fontSize: 16,
+                          padding: '0 4px',
+                          lineHeight: 1
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add row + submit */}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <button
+                    onClick={addBulkRow}
+                    style={{
+                      ...S.btn,
+                      background: 'var(--w08)',
+                      border: '0.5px solid var(--w15)',
+                      color: 'var(--t2)',
+                      padding: '8px 16px',
+                      fontSize: 12
+                    }}
+                  >
+                    + Add Row
+                  </button>
+                  <div style={{ flex: 1, fontSize: 11, color: 'var(--t3)' }}>
+                    {
+                      bulkRows.filter(
+                        (r) => r.customer && r.phone && r.items && r.total
+                      ).length
+                    }{' '}
+                    of {bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''}{' '}
+                    ready
+                  </div>
+                  <button
+                    onClick={submitBulk}
+                    disabled={
+                      bulkSaving ||
+                      !bulkRows.some(
+                        (r) => r.customer && r.phone && r.items && r.total
+                      )
+                    }
+                    style={{
+                      ...S.btn,
+                      background: 'var(--gold)',
+                      color: '#fff',
+                      padding: '10px 24px',
+                      fontSize: 13,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      opacity: bulkRows.some(
+                        (r) => r.customer && r.phone && r.items && r.total
+                      )
+                        ? 1
+                        : 0.4
+                    }}
+                  >
+                    {bulkSaving ? 'Saving...' : '✓ Import All'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Manual Order Modal */}
       {showManual && (
         <div
@@ -1022,6 +1470,27 @@ function OrdersTab() {
           }}
         >
           + Manual Order
+        </button>
+        <button
+          onClick={() => {
+            setShowBulk(true)
+            setBulkRows([emptyBulkRow()])
+            setBulkDone(null)
+          }}
+          style={{
+            ...S.btn,
+            background: 'var(--w08)',
+            border: '0.5px solid var(--w15)',
+            color: 'var(--t2)',
+            padding: '10px 14px',
+            fontSize: 12,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            alignSelf: 'flex-start'
+          }}
+        >
+          ⬆ Bulk Import
         </button>
       </div>
 
@@ -6484,3 +6953,4 @@ export default function AdminPage() {
     </div>
   )
 }
+
