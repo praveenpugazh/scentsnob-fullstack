@@ -222,3 +222,11 @@ select option {
     transform: rotate(360deg);
   }
 }
+
+/* Eliminate 300ms tap delay on iOS for all buttons and links */
+a,
+button,
+[role='button'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}

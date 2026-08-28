@@ -52,43 +52,51 @@ export default function Nav({
     }
   }, [])
 
-  const mobileNavLink = (id, label, emoji = '') => (
-    <button
-      onClick={() => {
-        goTab(id)
-        setMenuOpen(false)
-        setSearchOpen(false)
-        onSearch('')
-      }}
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: 13,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--ff-sans)',
-        padding: '12px 0',
-        width: '100%',
-        textAlign: 'left',
-        color: activeTab === id ? 'var(--gold)' : 'rgba(255,255,255,0.65)',
-        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10
-      }}
-    >
-      {emoji && <span style={{ fontSize: 16 }}>{emoji}</span>}
-      {label}
-      {activeTab === id && (
-        <span
-          style={{ marginLeft: 'auto', color: 'var(--gold)', fontSize: 10 }}
-        >
-          ●
-        </span>
-      )}
-    </button>
-  )
+  const mobileNavLink = (id, label, emoji = '') => {
+    const handleNav = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      goTab(id)
+      setMenuOpen(false)
+      setSearchOpen(false)
+      onSearch('')
+    }
+    return (
+      <button
+        onClick={handleNav}
+        onTouchEnd={handleNav}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: 13,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          fontFamily: 'var(--ff-sans)',
+          padding: '14px 0',
+          width: '100%',
+          textAlign: 'left',
+          color: activeTab === id ? 'var(--gold)' : 'var(--w65)',
+          borderBottom: '0.5px solid var(--w06)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation'
+        }}
+      >
+        {emoji && <span style={{ fontSize: 18 }}>{emoji}</span>}
+        {label}
+        {activeTab === id && (
+          <span
+            style={{ marginLeft: 'auto', color: 'var(--gold)', fontSize: 10 }}
+          >
+            ●
+          </span>
+        )}
+      </button>
+    )
+  }
 
   const desktopNavLink = (id, label) => (
     <button
@@ -416,7 +424,6 @@ export default function Nav({
             background: 'var(--overlay)'
           }}
           onClick={() => setMenuOpen(false)}
-          onTouchEnd={() => setMenuOpen(false)}
         >
           <div
             style={{
@@ -425,7 +432,6 @@ export default function Nav({
               padding: '0.5rem 4vw 1rem'
             }}
             onClick={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
           >
             {mobileNavLink('brands', 'Brands', '🏷️')}
             {mobileNavLink('partials', 'Partials', '🧴')}
