@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import nodemailer from 'nodemailer'
-
+import { deductMl } from '@/lib/deductMl'
 export async function POST(req) {
   try {
     const {
@@ -108,6 +108,9 @@ export async function POST(req) {
     fetch(
       `https://api.whatsapp.com/send?phone=918754519509&text=${encodeURIComponent(waMsg)}`
     ).catch(() => {})
+
+    // Deduct ml from product inventory
+    await deductMl(items)
 
     return NextResponse.json({ success: true, order_ref: orderRef, order })
   } catch (err) {

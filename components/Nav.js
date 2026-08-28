@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabase } from '@/lib/supabase'
-import ThemeToggle from '@/components/ThemeToggle'
 
 export default function Nav({
   cartCount = 0,
@@ -46,7 +45,11 @@ export default function Nav({
         setMenuOpen(false)
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
   }, [])
 
   const mobileNavLink = (id, label, emoji = '') => (
@@ -68,8 +71,8 @@ export default function Nav({
         padding: '12px 0',
         width: '100%',
         textAlign: 'left',
-        color: activeTab === id ? 'var(--gold)' : 'var(--w65)',
-        borderBottom: '0.5px solid var(--w06)',
+        color: activeTab === id ? 'var(--gold)' : 'rgba(255,255,255,0.65)',
+        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
         display: 'flex',
         alignItems: 'center',
         gap: 10
@@ -103,7 +106,7 @@ export default function Nav({
         textTransform: 'uppercase',
         fontFamily: 'var(--ff-sans)',
         padding: '4px 0',
-        color: activeTab === id ? 'var(--gold)' : 'var(--w50)',
+        color: activeTab === id ? 'var(--gold)' : 'rgba(255,255,255,0.5)',
         borderBottom:
           activeTab === id ? '1px solid var(--gold)' : '1px solid transparent',
         transition: 'all .2s'
@@ -120,11 +123,9 @@ export default function Nav({
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          background: scrolled
-            ? 'color-mix(in srgb, var(--bg) 98%, transparent)'
-            : 'color-mix(in srgb, var(--bg) 90%, transparent)',
+          background: scrolled ? 'rgba(10,9,8,0.98)' : 'rgba(10,9,8,0.9)',
           backdropFilter: 'blur(16px)',
-          borderBottom: '0.5px solid var(--w07)',
+          borderBottom: '0.5px solid rgba(255,255,255,0.07)',
           transition: 'all .3s'
         }}
       >
@@ -156,7 +157,7 @@ export default function Nav({
               fontWeight: 500,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: 'var(--w90)',
+              color: 'rgba(255,255,255,0.9)',
               flexShrink: 0,
               padding: 0
             }}
@@ -193,7 +194,7 @@ export default function Nav({
                     left: 10,
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: 'var(--w30)',
+                    color: 'rgba(255,255,255,0.3)',
                     fontSize: 14
                   }}
                 >
@@ -208,8 +209,8 @@ export default function Nav({
                   }}
                   placeholder='Search...'
                   style={{
-                    background: 'var(--w06)',
-                    border: '0.5px solid var(--w15)',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '0.5px solid rgba(255,255,255,0.15)',
                     borderRadius: 6,
                     padding: '7px 28px 7px 30px',
                     fontSize: 13,
@@ -232,7 +233,7 @@ export default function Nav({
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
-                      color: 'var(--w30)',
+                      color: 'rgba(255,255,255,0.3)',
                       cursor: 'pointer',
                       fontSize: 16
                     }}
@@ -247,7 +248,7 @@ export default function Nav({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--w50)',
+                  color: 'rgba(255,255,255,0.5)',
                   cursor: 'pointer',
                   fontSize: 20,
                   display: 'flex',
@@ -269,8 +270,8 @@ export default function Nav({
                     width: 28,
                     height: 28,
                     borderRadius: '50%',
-                    background: 'var(--gold-15)',
-                    border: '0.5px solid var(--gold-40)',
+                    background: 'rgba(176,144,96,0.15)',
+                    border: '0.5px solid rgba(176,144,96,0.4)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -290,7 +291,7 @@ export default function Nav({
                     fontSize: 11,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    color: 'var(--w40)',
+                    color: 'rgba(255,255,255,0.4)',
                     textDecoration: 'none'
                   }}
                 >
@@ -299,9 +300,6 @@ export default function Nav({
               )}
             </div>
 
-            {/* Theme toggle */}
-            <ThemeToggle />
-
             {/* Cart */}
             <button
               onClick={onCartOpen}
@@ -309,11 +307,11 @@ export default function Nav({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                background: 'var(--gold-08)',
-                border: '0.5px solid var(--gold-25)',
+                background: 'rgba(176,144,96,0.08)',
+                border: '0.5px solid rgba(176,144,96,0.25)',
                 borderRadius: 5,
                 padding: '7px 12px',
-                color: 'var(--w75)',
+                color: 'rgba(255,255,255,0.75)',
                 cursor: 'pointer',
                 fontSize: 12,
                 letterSpacing: '0.08em',
@@ -366,7 +364,9 @@ export default function Nav({
                   display: 'block',
                   width: 20,
                   height: 1.5,
-                  background: menuOpen ? 'var(--gold)' : 'var(--w70)',
+                  background: menuOpen
+                    ? 'var(--gold)'
+                    : 'rgba(255,255,255,0.7)',
                   transition: 'all .2s',
                   transform: menuOpen
                     ? 'rotate(45deg) translate(4px, 4px)'
@@ -378,7 +378,9 @@ export default function Nav({
                   display: 'block',
                   width: 20,
                   height: 1.5,
-                  background: menuOpen ? 'transparent' : 'var(--w70)',
+                  background: menuOpen
+                    ? 'transparent'
+                    : 'rgba(255,255,255,0.7)',
                   transition: 'all .2s'
                 }}
               />
@@ -387,7 +389,9 @@ export default function Nav({
                   display: 'block',
                   width: 20,
                   height: 1.5,
-                  background: menuOpen ? 'var(--gold)' : 'var(--w70)',
+                  background: menuOpen
+                    ? 'var(--gold)'
+                    : 'rgba(255,255,255,0.7)',
                   transition: 'all .2s',
                   transform: menuOpen
                     ? 'rotate(-45deg) translate(4px, -4px)'
@@ -412,6 +416,7 @@ export default function Nav({
             background: 'var(--overlay)'
           }}
           onClick={() => setMenuOpen(false)}
+          onTouchEnd={() => setMenuOpen(false)}
         >
           <div
             style={{
@@ -420,6 +425,7 @@ export default function Nav({
               padding: '0.5rem 4vw 1rem'
             }}
             onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
           >
             {mobileNavLink('brands', 'Brands', '🏷️')}
             {mobileNavLink('partials', 'Partials', '🧴')}
@@ -434,7 +440,7 @@ export default function Nav({
                     alignItems: 'center',
                     gap: 10,
                     padding: '12px 0',
-                    color: 'var(--w65)',
+                    color: 'rgba(255,255,255,0.65)',
                     textDecoration: 'none',
                     fontSize: 13,
                     letterSpacing: '0.1em',
@@ -453,7 +459,7 @@ export default function Nav({
                     alignItems: 'center',
                     gap: 10,
                     padding: '12px 0',
-                    color: 'var(--w65)',
+                    color: 'rgba(255,255,255,0.65)',
                     textDecoration: 'none',
                     fontSize: 13,
                     letterSpacing: '0.1em',
@@ -464,34 +470,6 @@ export default function Nav({
                   <span style={{ fontSize: 16 }}>🔑</span> Sign In
                 </Link>
               )}
-            </div>
-
-            {/* Theme toggle in mobile menu */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 0',
-                borderTop: '0.5px solid var(--w06)',
-                marginTop: 4
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 13,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  fontFamily: 'var(--ff-sans)',
-                  color: 'var(--w65)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10
-                }}
-              >
-                <span style={{ fontSize: 16 }}>🎨</span> Appearance
-              </span>
-              <ThemeToggle />
             </div>
           </div>
         </div>

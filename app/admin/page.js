@@ -114,6 +114,25 @@ function OrdersTab() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
 
+  // Manual order state
+  const [showManual, setShowManual] = useState(false)
+  const [products, setProducts] = useState([])
+  const [partials, setPartials] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [itemSearch, setItemSearch] = useState('')
+  const [manualForm, setManualForm] = useState({
+    customer: '',
+    phone: '',
+    line1: '',
+    line2: '',
+    line3: '',
+    pincode: '',
+    payment: 'GPay',
+    notes: '',
+    items: []
+  })
+  const setMF = (k, v) => setManualForm((f) => ({ ...f, [k]: v }))
+
   useEffect(() => {
     fetch('/api/orders')
       .then((r) => r.json())
@@ -123,13 +142,162 @@ function OrdersTab() {
       })
   }, [])
 
-  const updateStatus = async (id, status) => {
+  // Load products + partials when manual modal opens
+  useEffect(() => {
+    if (!showManual || products.length > 0) return
+    Promise.all([
+      fetch('/api/products?admin=1').then((r) => r.json()),
+      fetch('/api/partials').then((r) => r.json())
+    ]).then(([p, pa]) => {
+      setProducts(Array.isArray(p) ? p : [])
+      setPartials(Array.isArray(pa) ? pa : [])
+    })
+  }, [showManual])
+
+  const addItem = (item) => {
+    setManualForm((f) => ({ ...f, items: [...f.items, item] }))
+    setItemSearch('')
+  }
+
+  const removeItem = (idx) =>
+    setManualForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))
+
+  const updateItemQty = (idx, qty) =>
+    setManualForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        i === idx ? { ...it, qty: Math.max(1, Number(qty)) } : it
+      )
+    }))
+
+  const updateItemPrice = (idx, price) =>
+    setManualForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        i === idx ? { ...it, price: Number(price) } : it
+      )
+    }))
+
+  // Totals
+  const subtotal = manualForm.items.reduce((s, it) => s + it.price * it.qty, 0)
+  const shipping = subtotal >= 3000 ? 0 : 160
+  const total = subtotal + shipping
+
+  const submitManualOrder = async () => {
+    if (
+      !manualForm.customer ||
+      !manualForm.phone ||
+      !manualForm.line1 ||
+      !manualForm.pincode
+    )
+      return
+    if (manualForm.items.length === 0) return
+    setSaving(true)
+    const address = [
+      manualForm.line1,
+      manualForm.line2,
+      manualForm.line3,
+      manualForm.pincode
+    ]
+      .filter(Boolean)
+      .join(', ')
+    const r = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer: manualForm.customer,
+        phone: manualForm.phone,
+        address,
+        items: manualForm.items.map((it) => ({
+          name: it.name,
+          brand: it.brand,
+          size: it.size || '',
+          qty: it.qty,
+          price: it.price
+        })),
+        subtotal,
+        shipping,
+        total,
+        status: 'Paid',
+        payment_id: `manual_${manualForm.payment}_${Date.now()}`,
+        notes:
+          manualForm.notes || `Manual order — paid via ${manualForm.payment}`
+      })
+    })
+    const created = await r.json()
+    setOrders((o) => [created, ...o])
+    setShowManual(false)
+    setManualForm({
+      customer: '',
+      phone: '',
+      line1: '',
+      line2: '',
+      line3: '',
+      pincode: '',
+      payment: 'GPay',
+      notes: '',
+      items: []
+    })
+    setItemSearch('')
+    setSaving(false)
+  }
+
+  // Item search results
+  const itemResults =
+    itemSearch.length < 1
+      ? []
+      : [
+          ...products.flatMap((p) => {
+            const sizes = ['5ml', '10ml', '20ml', '30ml']
+            const prices = [p.p5, p.p10, p.p20, p.p30]
+            return sizes
+              .map((sz, i) => ({
+                key: `${p.id}-${sz}`,
+                label: `${p.brand} ${p.name} ${sz}`,
+                brand: p.brand,
+                name: p.name,
+                size: sz,
+                price: prices[i] || 0,
+                qty: 1,
+                type: 'decant'
+              }))
+              .filter((x) => x.price > 0)
+          }),
+          ...partials.map((p) => ({
+            key: `partial-${p.id}`,
+            label: `${p.brand} ${p.name} (Partial ${p.ml_left}ml)`,
+            brand: p.brand,
+            name: p.name,
+            size: `${p.ml_left}ml partial`,
+            price: p.price || 0,
+            qty: 1,
+            type: 'partial'
+          }))
+        ]
+          .filter((x) =>
+            x.label.toLowerCase().includes(itemSearch.toLowerCase())
+          )
+          .slice(0, 8)
+
+  const updateStatus = async (id, status, trackingNumber) => {
+    const body = { status }
+    if (trackingNumber) body.tracking_number = trackingNumber
     await fetch(`/api/orders/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify(body)
     })
-    setOrders((o) => o.map((x) => (x.id === id ? { ...x, status } : x)))
+    setOrders((o) =>
+      o.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              status,
+              ...(trackingNumber ? { tracking_number: trackingNumber } : {})
+            }
+          : x
+      )
+    )
   }
 
   const filtered = orders.filter((o) => {
@@ -156,74 +324,705 @@ function OrdersTab() {
 
   return (
     <div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
-          gap: 12,
-          marginBottom: 24
-        }}
-      >
-        {[
-          ['Total Orders', orders.length, 'all time'],
-          ['Revenue', formatINR(totalRevenue), 'excl. cancelled'],
-          ['This Month', formatINR(thisMonth), ''],
-          [
-            'Pending',
-            pendingCount,
-            pendingCount > 0 ? '⚠ needs action' : 'all clear'
-          ]
-        ].map(([label, val, sub]) => (
+      {/* Manual Order Modal */}
+      {showManual && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '2rem 1rem',
+            overflowY: 'auto'
+          }}
+          onClick={() => setShowManual(false)}
+        >
           <div
-            key={label}
             style={{
-              ...S.card,
-              borderColor:
-                label === 'Pending' && pendingCount > 0
-                  ? 'rgba(176,144,96,0.3)'
-                  : undefined
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 640,
+              marginBottom: '2rem'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
             <div
               style={{
-                fontSize: 9,
-                letterSpacing: '0.14em',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gold)',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontWeight: 600
+                  }}
+                >
+                  Manual Order
+                </div>
+                <div
+                  style={{ fontSize: 11, color: 'var(--w35)', marginTop: 2 }}
+                >
+                  WhatsApp / GPay / UPI / Cash orders
+                </div>
+              </div>
+              <button
+                onClick={() => setShowManual(false)}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w06)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--w60)',
+                  width: 28,
+                  height: 28,
+                  padding: 0,
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Customer details */}
+            <div
+              style={{
+                fontSize: 10,
+                color: 'var(--gold)',
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.35)',
-                marginBottom: 6
+                marginBottom: 10,
+                fontWeight: 600
               }}
             >
-              {label}
+              Customer Details
             </div>
             <div
               style={{
-                fontSize: 22,
-                color:
-                  label === 'Pending' && pendingCount > 0
-                    ? '#b09060'
-                    : 'rgba(255,255,255,0.9)',
-                fontWeight: 300,
-                fontFamily: 'var(--ff-serif)'
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 10,
+                marginBottom: 10
               }}
             >
-              {val}
+              <div>
+                <label style={S.lbl}>Full Name</label>
+                <input
+                  style={S.inp}
+                  value={manualForm.customer}
+                  onChange={(e) => setMF('customer', e.target.value)}
+                  placeholder='Rahul Sharma'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Phone</label>
+                <input
+                  style={S.inp}
+                  type='tel'
+                  value={manualForm.phone}
+                  onChange={(e) =>
+                    setMF(
+                      'phone',
+                      e.target.value.replace(/\D/g, '').slice(0, 10)
+                    )
+                  }
+                  placeholder='9876543210'
+                  maxLength={10}
+                />
+              </div>
             </div>
-            {sub && (
+            <div style={{ marginBottom: 8 }}>
+              <label style={S.lbl}>Flat / House & Street</label>
+              <input
+                style={S.inp}
+                value={manualForm.line1}
+                onChange={(e) => setMF('line1', e.target.value)}
+                placeholder='12A, MG Road'
+              />
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr',
+                gap: 10,
+                marginBottom: 16
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Area / Locality</label>
+                <input
+                  style={S.inp}
+                  value={manualForm.line2}
+                  onChange={(e) => setMF('line2', e.target.value)}
+                  placeholder='Koramangala'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>City & State</label>
+                <input
+                  style={S.inp}
+                  value={manualForm.line3}
+                  onChange={(e) => setMF('line3', e.target.value)}
+                  placeholder='Bengaluru, KA'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>PIN Code</label>
+                <input
+                  style={S.inp}
+                  value={manualForm.pincode}
+                  onChange={(e) =>
+                    setMF(
+                      'pincode',
+                      e.target.value.replace(/\D/g, '').slice(0, 6)
+                    )
+                  }
+                  placeholder='560034'
+                />
+              </div>
+            </div>
+
+            {/* Item search */}
+            <div
+              style={{
+                fontSize: 10,
+                color: 'var(--gold)',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                marginBottom: 10,
+                fontWeight: 600
+              }}
+            >
+              Items Ordered
+            </div>
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <input
+                style={{ ...S.inp, paddingRight: 36 }}
+                value={itemSearch}
+                onChange={(e) => setItemSearch(e.target.value)}
+                placeholder='Search product or partial name + size...'
+              />
+              {itemSearch && (
+                <button
+                  onClick={() => setItemSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--w40)',
+                    cursor: 'pointer',
+                    fontSize: 16
+                  }}
+                >
+                  ×
+                </button>
+              )}
+              {itemResults.length > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--bg3)',
+                    border: '0.5px solid var(--gold-20)',
+                    borderRadius: 6,
+                    zIndex: 10,
+                    maxHeight: 220,
+                    overflowY: 'auto',
+                    marginTop: 2
+                  }}
+                >
+                  {itemResults.map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => addItem(item)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%',
+                        padding: '8px 12px',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: '0.5px solid var(--w06)',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: 12, color: 'var(--w85)' }}>
+                          {item.brand} {item.name}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--w40)',
+                            marginLeft: 8
+                          }}
+                        >
+                          {item.size}
+                        </span>
+                        {item.type === 'partial' && (
+                          <span
+                            style={{
+                              fontSize: 9,
+                              color: 'var(--gold)',
+                              marginLeft: 6,
+                              letterSpacing: '0.08em'
+                            }}
+                          >
+                            PARTIAL
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--gold)',
+                          fontWeight: 600
+                        }}
+                      >
+                        ₹{item.price}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Custom line item */}
+            <div
+              style={{
+                fontSize: 10,
+                color: 'var(--w35)',
+                marginBottom: 10,
+                letterSpacing: '0.06em'
+              }}
+            >
+              Can't find it? Add manually:
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {['brand', 'name', 'size', 'price'].map((field, i) => (
+                <input
+                  key={field}
+                  id={`custom-${field}`}
+                  style={{ ...S.inp, flex: field === 'name' ? 2 : 1 }}
+                  placeholder={['Brand', 'Name', 'Size', '₹Price'][i]}
+                  type={field === 'price' ? 'number' : 'text'}
+                />
+              ))}
+              <button
+                onClick={() => {
+                  const b = document.getElementById('custom-brand').value
+                  const n = document.getElementById('custom-name').value
+                  const sz = document.getElementById('custom-size').value
+                  const pr = Number(
+                    document.getElementById('custom-price').value
+                  )
+                  if (!n || !pr) return
+                  addItem({
+                    key: `custom-${Date.now()}`,
+                    brand: b,
+                    name: n,
+                    size: sz,
+                    price: pr,
+                    qty: 1,
+                    type: 'custom'
+                  })
+                  ;['brand', 'name', 'size', 'price'].forEach((f) => {
+                    document.getElementById(`custom-${f}`).value = ''
+                  })
+                }}
+                style={{
+                  ...S.btn,
+                  background: 'var(--gold-20)',
+                  border: '0.5px solid var(--gold-35)',
+                  color: 'var(--gold)',
+                  padding: '0 14px',
+                  whiteSpace: 'nowrap',
+                  fontSize: 12
+                }}
+              >
+                + Add
+              </button>
+            </div>
+
+            {/* Items list */}
+            {manualForm.items.length > 0 && (
               <div
                 style={{
-                  fontSize: 10,
+                  background: 'var(--w04)',
+                  border: '0.5px solid var(--w08)',
+                  borderRadius: 6,
+                  marginBottom: 16,
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: 8,
+                    padding: '6px 12px',
+                    borderBottom: '0.5px solid var(--w08)',
+                    fontSize: 9,
+                    color: 'var(--w35)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  <span>Item</span>
+                  <span>Qty</span>
+                  <span>Price (₹)</span>
+                  <span></span>
+                </div>
+                {manualForm.items.map((it, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto auto auto',
+                      gap: 8,
+                      padding: '8px 12px',
+                      borderBottom:
+                        idx < manualForm.items.length - 1
+                          ? '0.5px solid var(--w06)'
+                          : 'none',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: 12, color: 'var(--w85)' }}>
+                        {it.brand} {it.name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--w40)',
+                          marginLeft: 6
+                        }}
+                      >
+                        {it.size}
+                      </span>
+                    </div>
+                    <input
+                      type='number'
+                      min='1'
+                      value={it.qty}
+                      onChange={(e) => updateItemQty(idx, e.target.value)}
+                      style={{
+                        ...S.inp,
+                        width: 48,
+                        textAlign: 'center',
+                        padding: '4px 6px',
+                        fontSize: 12
+                      }}
+                    />
+                    <input
+                      type='number'
+                      min='0'
+                      value={it.price}
+                      onChange={(e) => updateItemPrice(idx, e.target.value)}
+                      style={{
+                        ...S.inp,
+                        width: 72,
+                        textAlign: 'right',
+                        padding: '4px 8px',
+                        fontSize: 12
+                      }}
+                    />
+                    <button
+                      onClick={() => removeItem(idx)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--red)',
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        padding: '0 4px'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {/* Totals */}
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    borderTop: '0.5px solid var(--w08)'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 11,
+                      color: 'var(--w50)',
+                      marginBottom: 4
+                    }}
+                  >
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 11,
+                      color: 'var(--w50)',
+                      marginBottom: 6
+                    }}
+                  >
+                    <span>Shipping</span>
+                    <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'var(--gold)',
+                      borderTop: '0.5px solid var(--gold-20)',
+                      paddingTop: 6
+                    }}
+                  >
+                    <span>Total</span>
+                    <span>₹{total.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Payment method + notes */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 2fr',
+                gap: 10,
+                marginBottom: 20
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Payment Method</label>
+                <select
+                  style={S.inp}
+                  value={manualForm.payment}
+                  onChange={(e) => setMF('payment', e.target.value)}
+                >
+                  {[
+                    'GPay',
+                    'PhonePe',
+                    'Paytm',
+                    'BHIM UPI',
+                    'Direct UPI',
+                    'Cash',
+                    'Bank Transfer',
+                    'Other'
+                  ].map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={S.lbl}>
+                  Notes <span style={{ color: 'var(--w30)' }}>optional</span>
+                </label>
+                <input
+                  style={S.inp}
+                  value={manualForm.notes}
+                  onChange={(e) => setMF('notes', e.target.value)}
+                  placeholder='e.g. Paid ₹2,450 via GPay, WhatsApp order'
+                />
+              </div>
+            </div>
+
+            {/* Validation hint */}
+            {(!manualForm.customer ||
+              !manualForm.phone ||
+              !manualForm.line1 ||
+              !manualForm.pincode ||
+              manualForm.items.length === 0) && (
+              <div
+                style={{ fontSize: 11, color: 'var(--w30)', marginBottom: 14 }}
+              >
+                {manualForm.items.length === 0
+                  ? '↑ Add at least one item'
+                  : '↑ Fill in customer name, phone, address & PIN to proceed'}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={submitManualOrder}
+                disabled={
+                  saving ||
+                  !manualForm.customer ||
+                  !manualForm.phone ||
+                  !manualForm.line1 ||
+                  !manualForm.pincode ||
+                  manualForm.items.length === 0
+                }
+                style={{
+                  ...S.btn,
+                  background: 'var(--gold)',
+                  color: '#fff',
+                  padding: '11px 0',
+                  fontSize: 13,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  flex: 1,
+                  opacity:
+                    saving ||
+                    !manualForm.customer ||
+                    !manualForm.phone ||
+                    !manualForm.line1 ||
+                    manualForm.items.length === 0
+                      ? 0.5
+                      : 1
+                }}
+              >
+                {saving
+                  ? 'Saving...'
+                  : `✓ Create Order · ₹${total.toLocaleString('en-IN')}`}
+              </button>
+              <button
+                onClick={() => setShowManual(false)}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w06)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--w60)',
+                  padding: '11px 20px',
+                  fontSize: 13
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stats + Manual Order button row */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: 16
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
+            gap: 12,
+            flex: 1
+          }}
+        >
+          {[
+            ['Total Orders', orders.length, 'all time'],
+            ['Revenue', formatINR(totalRevenue), 'excl. cancelled'],
+            ['This Month', formatINR(thisMonth), ''],
+            [
+              'Pending',
+              pendingCount,
+              pendingCount > 0 ? '⚠ needs action' : 'all clear'
+            ]
+          ].map(([label, val, sub]) => (
+            <div
+              key={label}
+              style={{
+                ...S.card,
+                borderColor:
+                  label === 'Pending' && pendingCount > 0
+                    ? 'rgba(176,144,96,0.3)'
+                    : undefined
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 9,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.35)',
+                  marginBottom: 6
+                }}
+              >
+                {label}
+              </div>
+              <div
+                style={{
+                  fontSize: 22,
                   color:
                     label === 'Pending' && pendingCount > 0
                       ? '#b09060'
-                      : 'rgba(255,255,255,0.25)',
-                  marginTop: 2
+                      : 'rgba(255,255,255,0.9)',
+                  fontWeight: 300,
+                  fontFamily: 'var(--ff-serif)'
                 }}
               >
-                {sub}
+                {val}
               </div>
-            )}
-          </div>
-        ))}
+              {sub && (
+                <div
+                  style={{
+                    fontSize: 10,
+                    color:
+                      label === 'Pending' && pendingCount > 0
+                        ? '#b09060'
+                        : 'rgba(255,255,255,0.25)',
+                    marginTop: 2
+                  }}
+                >
+                  {sub}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowManual(true)}
+          style={{
+            ...S.btn,
+            background: 'var(--gold)',
+            color: '#fff',
+            padding: '10px 18px',
+            fontSize: 12,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            marginLeft: 16,
+            alignSelf: 'flex-start'
+          }}
+        >
+          + Manual Order
+        </button>
       </div>
 
       <div
@@ -364,8 +1163,30 @@ function OrdersTab() {
                 </div>
                 <StatusStepper
                   status={order.status}
-                  onChange={(s) => updateStatus(order.id, s)}
+                  onChange={(s) => {
+                    if (s === 'Shipped') {
+                      const tracking = window.prompt(
+                        `Enter tracking / AWB number for ${order.order_ref} (optional — press OK to skip):`,
+                        order.tracking_number || ''
+                      )
+                      updateStatus(order.id, s, tracking || undefined)
+                    } else {
+                      updateStatus(order.id, s)
+                    }
+                  }}
                 />
+                {order.tracking_number && (
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--gold)',
+                      marginTop: 4,
+                      letterSpacing: '0.06em'
+                    }}
+                  >
+                    📦 {order.tracking_number}
+                  </div>
+                )}
               </div>
             </div>
             {order.items && order.items.length > 0 && (
@@ -905,7 +1726,8 @@ function ProductsTab() {
     category: 'niche',
     paid_amount: '',
     bottle_ml: '',
-    margin: Math.round(DEFAULT_MARGIN * 100), // stored as % e.g. 3
+    ml_remaining: '',
+    margin: Math.round(DEFAULT_MARGIN * 100),
     p5: 0,
     p10: 0,
     p20: 0,
@@ -931,7 +1753,11 @@ function ProductsTab() {
   const recalc = (paid, ml, marginPct) => {
     const m = marginPct !== undefined ? marginPct : form.margin
     if (paid && ml) {
-      const { p5, p10, p20, p30 } = calcPrices(Number(paid), Number(ml), Number(m) / 100)
+      const { p5, p10, p20, p30 } = calcPrices(
+        Number(paid),
+        Number(ml),
+        Number(m) / 100
+      )
       setForm((f) => ({ ...f, p5, p10, p20, p30, _autoCalc: true }))
     }
   }
@@ -948,7 +1774,13 @@ function ProductsTab() {
       p20: Number(form.p20) || 0,
       image_url: form.image_url || null,
       paid_amount: form.paid_amount ? Number(form.paid_amount) : null,
-      bottle_ml: form.bottle_ml ? Number(form.bottle_ml) : null
+      bottle_ml: form.bottle_ml ? Number(form.bottle_ml) : null,
+      ml_remaining:
+        form.ml_remaining !== '' && form.ml_remaining !== null
+          ? Number(form.ml_remaining)
+          : form.bottle_ml
+            ? Math.max(0, Number(form.bottle_ml) - 10)
+            : null
     }
     if (editId) {
       const currentEditId = editId // capture before any state change
@@ -1055,6 +1887,7 @@ function ProductsTab() {
       category: p.category || 'niche',
       paid_amount: p.paid_amount != null ? String(p.paid_amount) : '',
       bottle_ml: p.bottle_ml != null ? String(p.bottle_ml) : '',
+      ml_remaining: p.ml_remaining != null ? String(p.ml_remaining) : '',
       p5: p.p5 != null ? p.p5 : 0,
       p10: p.p10 != null ? p.p10 : 0,
       p20: p.p20 != null ? p.p20 : 0,
@@ -1291,15 +2124,26 @@ function ProductsTab() {
                   value={form.bottle_ml}
                   placeholder='50'
                   onChange={(e) => {
-                    set('bottle_ml', e.target.value)
-                    recalc(form.paid_amount, e.target.value, form.margin)
+                    const ml = e.target.value
+                    set('bottle_ml', ml)
+                    // Auto-set sellable ml = bottle - 10 (reserve for yourself)
+                    if (ml && !form.ml_remaining) {
+                      set('ml_remaining', Math.max(0, Number(ml) - 10))
+                    }
+                    recalc(form.paid_amount, ml, form.margin)
                   }}
                 />
               </div>
               <div>
                 <label style={S.lbl}>
                   Margin %
-                  <span style={{ color: 'var(--gold)', fontWeight: 600, marginLeft: 4 }}>
+                  <span
+                    style={{
+                      color: 'var(--gold)',
+                      fontWeight: 600,
+                      marginLeft: 4
+                    }}
+                  >
                     {form.margin}%
                   </span>
                 </label>
@@ -1318,6 +2162,83 @@ function ProductsTab() {
                 />
               </div>
             </div>
+
+            {/* ML Remaining */}
+            {form.bottle_ml && (
+              <div
+                style={{
+                  marginBottom: 12,
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 10,
+                  alignItems: 'end'
+                }}
+              >
+                <div>
+                  <label style={S.lbl}>
+                    ML Remaining (sellable)
+                    <span
+                      style={{
+                        color: 'var(--w35)',
+                        fontWeight: 400,
+                        marginLeft: 6,
+                        fontSize: 10
+                      }}
+                    >
+                      you keep 10ml — edit if already used some
+                    </span>
+                  </label>
+                  <input
+                    style={{
+                      ...S.inp,
+                      color:
+                        Number(form.ml_remaining) <= 10
+                          ? '#dc5050'
+                          : Number(form.ml_remaining) <= 30
+                            ? 'var(--gold)'
+                            : 'var(--green-txt)',
+                      fontWeight: 600
+                    }}
+                    type='number'
+                    min='0'
+                    max={form.bottle_ml}
+                    step='1'
+                    value={form.ml_remaining}
+                    onChange={(e) => set('ml_remaining', e.target.value)}
+                    placeholder={
+                      form.bottle_ml
+                        ? String(Math.max(0, Number(form.bottle_ml) - 10))
+                        : ''
+                    }
+                  />
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--w35)',
+                    paddingBottom: 10,
+                    lineHeight: 1.6
+                  }}
+                >
+                  {form.bottle_ml &&
+                    form.ml_remaining !== '' &&
+                    (() => {
+                      const ml = Number(form.ml_remaining)
+                      const f5 = Math.floor(ml / 5)
+                      const f10 = Math.floor(ml / 10)
+                      const f20 = Math.floor(ml / 20)
+                      return (
+                        <span>
+                          Can fill:{' '}
+                          <span style={{ color: 'var(--gold)' }}>
+                            {f5}×5ml · {f10}×10ml · {f20}×20ml
+                          </span>
+                        </span>
+                      )
+                    })()}
+                </div>
+              </div>
+            )}
 
             {/* Price fields — gold tint, user can override */}
             <div
@@ -1552,6 +2473,24 @@ function ProductsTab() {
                     SOLD OUT
                   </span>
                 )}
+                {!p.sold_out &&
+                  p.ml_remaining != null &&
+                  p.ml_remaining <= 30 && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        color: p.ml_remaining <= 10 ? '#dc5050' : 'var(--gold)',
+                        border: `0.5px solid ${p.ml_remaining <= 10 ? 'rgba(220,80,80,0.3)' : 'rgba(176,144,96,0.3)'}`,
+                        borderRadius: 3,
+                        padding: '2px 6px',
+                        letterSpacing: '0.08em'
+                      }}
+                    >
+                      {p.ml_remaining <= 10
+                        ? `⚠ ${p.ml_remaining}ml left`
+                        : `🟡 ${p.ml_remaining}ml left`}
+                    </span>
+                  )}
                 <button
                   onClick={() => toggleIsNew(p)}
                   title={
@@ -2107,119 +3046,62 @@ function PartialsTab() {
   )
 }
 
-// ── STOCK TAB (with auto sold-out) ───────────────────────────────────────────
+// ── STOCK TAB — Liquid Inventory ─────────────────────────────────────────────
 const MIN_ML_TO_FULFIL = 7 // 5ml decant + 2ml headroom
+const FILL_LOSS = 0.92 // 8% dead volume / spillage factor per fill
+
+function canFill(remainingMl) {
+  return {
+    f5: Math.floor((remainingMl * FILL_LOSS) / 5),
+    f10: Math.floor((remainingMl * FILL_LOSS) / 10),
+    f20: Math.floor((remainingMl * FILL_LOSS) / 20),
+    f30: Math.floor((remainingMl * FILL_LOSS) / 30)
+  }
+}
 
 function StockTab() {
   const [bottles, setBottles] = useState([])
-  const [orders, setOrders] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [editBottle, setEditBottle] = useState(null) // bottle being edited
+  const [adjBottle, setAdjBottle] = useState(null) // bottle for adj modal
+  const [adjType, setAdjType] = useState('use') // use | topup | spill | test | gift
+  const [adjMl, setAdjMl] = useState('')
+  const [adjNote, setAdjNote] = useState('')
+  const [adjLog, setAdjLog] = useState([])
+  const [autoLog, setAutoLog] = useState([])
+  const [saving, setSaving] = useState(false)
+
   const [form, setForm] = useState({
     brand: '',
     name: '',
     notes: '',
-    start_ml: ''
+    start_ml: '',
+    product_id: ''
   })
-  const [autoSoldOutLog, setAutoSoldOutLog] = useState([])
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   useEffect(() => {
     Promise.all([
       fetch('/api/bottles').then((r) => r.json()),
-      fetch('/api/orders').then((r) => r.json()),
       fetch('/api/products?admin=1').then((r) => r.json())
-    ]).then(([b, o, p]) => {
+    ]).then(([b, p]) => {
       setBottles(Array.isArray(b) ? b : [])
-      setOrders(Array.isArray(o) ? o : [])
       setProducts(Array.isArray(p) ? p : [])
       setLoading(false)
     })
   }, [])
 
-  const calcUsed = useCallback(
-    (bottleName) => {
-      const key = bottleName.toLowerCase().trim()
-      let used = 0
-      for (const order of orders) {
-        if (order.status === 'Cancelled') continue
-        for (const item of order.items || []) {
-          const itemName = `${item.name || ''}`.toLowerCase()
-          if (itemName.includes(key) || key.includes(itemName.slice(0, 8))) {
-            const ml = parseInt(item.size) || 0
-            used += ml * (item.qty || 1)
-          }
-        }
-      }
-      return used
-    },
-    [orders]
-  )
-
-  // Auto sold-out: when remaining drops below MIN_ML_TO_FULFIL, mark matching product sold out
-  const runAutoSoldOut = useCallback(
-    async (bottlesWithStats) => {
-      const log = []
-      for (const bottle of bottlesWithStats) {
-        if (bottle.remaining < MIN_ML_TO_FULFIL) {
-          // Find matching product by name similarity
-          const match = products.find((p) => {
-            const pname = `${p.brand} ${p.name}`.toLowerCase()
-            const bname = `${bottle.brand} ${bottle.name}`.toLowerCase()
-            return (
-              pname.includes(bottle.name.toLowerCase()) ||
-              bname.includes(p.name.toLowerCase())
-            )
-          })
-          if (match && !match.sold_out) {
-            await fetch(`/api/products/${match.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sold_out: true })
-            })
-            setProducts((ps) =>
-              ps.map((p) => (p.id === match.id ? { ...p, sold_out: true } : p))
-            )
-            log.push(
-              `${match.brand} ${match.name} marked sold out (${bottle.remaining.toFixed(0)}ml left)`
-            )
-          }
-        }
-      }
-      if (log.length > 0) setAutoSoldOutLog(log)
-    },
-    [products]
-  )
-
-  const addBottle = async () => {
-    const r = await fetch('/api/bottles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        brand: form.brand,
-        name: form.name,
-        start_ml: Number(form.start_ml),
-        notes: form.notes
-      })
-    })
-    const created = await r.json()
-    setBottles((b) => [...b, created])
-    setForm({ brand: '', name: '', notes: '', start_ml: '' })
-    setShowAdd(false)
-  }
-
-  const deleteBottle = async (id) => {
-    if (!confirm('Remove bottle from tracker?')) return
-    await fetch(`/api/bottles/${id}`, { method: 'DELETE' })
-    setBottles((b) => b.filter((x) => x.id !== id))
-  }
-
+  // Compute remaining ml from start_ml + adjustments stored on bottle
   const bottlesWithStats = bottles
     .map((b) => {
-      const used = calcUsed(b.name)
-      const remaining = Math.max(0, b.start_ml - used)
-      const pct = Math.round((remaining / b.start_ml) * 100)
+      const adjs = Array.isArray(b.adjustments) ? b.adjustments : []
+      const totalAdj = adjs.reduce((sum, a) => sum + (Number(a.delta) || 0), 0)
+      const remaining = Math.max(0, b.start_ml + totalAdj)
+      const pct =
+        b.start_ml > 0 ? Math.round((remaining / b.start_ml) * 100) : 0
+      const fills = canFill(remaining)
       const canFulfil = remaining >= MIN_ML_TO_FULFIL
       const status = !canFulfil
         ? 'empty'
@@ -2229,33 +3111,150 @@ function StockTab() {
             ? 'low'
             : 'good'
       const color = {
-        empty: '#666',
+        empty: 'var(--w30)',
         critical: '#dc5050',
-        low: '#b09060',
-        good: '#4caf7d'
+        low: 'var(--gold)',
+        good: 'var(--green-txt)'
       }[status]
-      return { ...b, used, remaining, pct, status, color, canFulfil }
+      const linkedProduct = products.find((p) => p.id === b.product_id)
+      return {
+        ...b,
+        remaining,
+        pct,
+        fills,
+        canFulfil,
+        status,
+        color,
+        adjs,
+        linkedProduct
+      }
     })
     .sort((a, b) => a.pct - b.pct)
-
-  // Run auto sold-out check whenever data loads
-  useEffect(() => {
-    if (!loading && bottlesWithStats.length > 0 && products.length > 0) {
-      runAutoSoldOut(bottlesWithStats)
-    }
-  }, [loading])
 
   const critical = bottlesWithStats.filter(
     (b) => b.status === 'critical' || b.status === 'empty'
   ).length
 
+  // Auto sold-out check
+  useEffect(() => {
+    if (loading) return
+    const log = []
+    bottlesWithStats.forEach(async (b) => {
+      if (!b.canFulfil && b.linkedProduct && !b.linkedProduct.sold_out) {
+        await fetch(`/api/products/${b.linkedProduct.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sold_out: true })
+        })
+        setProducts((ps) =>
+          ps.map((p) =>
+            p.id === b.linkedProduct.id ? { ...p, sold_out: true } : p
+          )
+        )
+        log.push(
+          `${b.brand} ${b.name} auto-marked sold out (${b.remaining.toFixed(0)}ml left)`
+        )
+      }
+    })
+    if (log.length) setAutoLog(log)
+  }, [loading])
+
+  const addBottle = async () => {
+    if (!form.brand || !form.name || !form.start_ml) return
+    setSaving(true)
+    const r = await fetch('/api/bottles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        brand: form.brand,
+        name: form.name,
+        notes: form.notes,
+        start_ml: Number(form.start_ml),
+        product_id: form.product_id || null,
+        adjustments: []
+      })
+    })
+    const created = await r.json()
+    setBottles((b) => [...b, created])
+    setForm({ brand: '', name: '', notes: '', start_ml: '', product_id: '' })
+    setShowAdd(false)
+    setSaving(false)
+  }
+
+  const deleteBottle = async (id) => {
+    if (!confirm('Remove bottle from tracker?')) return
+    await fetch(`/api/bottles/${id}`, { method: 'DELETE' })
+    setBottles((b) => b.filter((x) => x.id !== id))
+  }
+
+  const saveAdj = async () => {
+    if (!adjMl || !adjBottle) return
+    const ml = Number(adjMl)
+    if (isNaN(ml) || ml <= 0) return
+    setSaving(true)
+    const delta = adjType === 'topup' ? ml : -ml
+    const entry = {
+      type: adjType,
+      delta,
+      ml,
+      note: adjNote || '',
+      at: new Date().toISOString()
+    }
+    const bottle = bottles.find((b) => b.id === adjBottle.id)
+    const adjs = [
+      ...(Array.isArray(bottle.adjustments) ? bottle.adjustments : []),
+      entry
+    ]
+    const r = await fetch(`/api/bottles/${adjBottle.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adjustments: adjs })
+    })
+    const updated = await r.json()
+    setBottles((bs) => bs.map((b) => (b.id === adjBottle.id ? updated : b)))
+    setAdjBottle(null)
+    setAdjMl('')
+    setAdjNote('')
+    setAdjType('use')
+    setSaving(false)
+  }
+
+  const adjTypeLabels = {
+    use: {
+      label: '📦 Manual Use',
+      hint: 'Filled decants manually outside of orders',
+      sign: '-'
+    },
+    topup: {
+      label: '➕ Top Up',
+      hint: 'Added more ml (bought new bottle of same)',
+      sign: '+'
+    },
+    spill: {
+      label: '💧 Spill/Loss',
+      hint: 'Accidental loss during decanting',
+      sign: '-'
+    },
+    test: {
+      label: '🧪 Testing',
+      hint: 'Used for your own testing/wearing',
+      sign: '-'
+    },
+    gift: {
+      label: '🎁 Gifted/Sample',
+      hint: 'Gave away as sample or gift',
+      sign: '-'
+    }
+  }
+
   return (
     <div>
-      {autoSoldOutLog.length > 0 && (
+      {/* Auto sold-out notice */}
+      {autoLog.length > 0 && (
         <div
           style={{
-            background: 'rgba(176,144,96,0.08)',
-            border: '0.5px solid rgba(176,144,96,0.25)',
+            background: 'var(--gold-08)',
+            border: '0.5px solid var(--gold-25)',
             borderRadius: 6,
             padding: '10px 14px',
             marginBottom: 20
@@ -2272,22 +3271,20 @@ function StockTab() {
           >
             ⚡ Auto sold-out triggered
           </div>
-          {autoSoldOutLog.map((msg, i) => (
-            <div
-              key={i}
-              style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}
-            >
+          {autoLog.map((msg, i) => (
+            <div key={i} style={{ fontSize: 12, color: 'var(--w60)' }}>
               • {msg}
             </div>
           ))}
         </div>
       )}
 
+      {/* Header row */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           marginBottom: 20
         }}
       >
@@ -2295,7 +3292,7 @@ function StockTab() {
           <div
             style={{
               fontSize: 18,
-              color: 'rgba(255,255,255,0.9)',
+              color: 'var(--w90)',
               fontFamily: 'var(--ff-serif)'
             }}
           >
@@ -2306,22 +3303,17 @@ function StockTab() {
               </span>
             )}
           </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: 'rgba(255,255,255,0.3)',
-              marginTop: 4
-            }}
-          >
-            Products auto-mark sold out when bottle drops below{' '}
-            {MIN_ML_TO_FULFIL}ml
+          <div style={{ fontSize: 11, color: 'var(--w30)', marginTop: 4 }}>
+            Auto-marks product sold out when bottle drops below{' '}
+            {MIN_ML_TO_FULFIL}ml · {Math.round((1 - FILL_LOSS) * 100)}% fill
+            loss factored in
           </div>
         </div>
         <button
-          onClick={() => setShowAdd((s) => !s)}
+          onClick={() => setShowAdd(true)}
           style={{
             ...S.btn,
-            background: '#b09060',
+            background: 'var(--gold)',
             color: '#fff',
             padding: '8px 18px',
             fontSize: 12,
@@ -2329,92 +3321,464 @@ function StockTab() {
             textTransform: 'uppercase'
           }}
         >
-          {showAdd ? 'Cancel' : '+ Add Bottle'}
+          + Add Bottle
         </button>
       </div>
 
+      {/* Summary stats row */}
+      {!loading &&
+        bottlesWithStats.length > 0 &&
+        (() => {
+          const totalMl = bottlesWithStats.reduce((s, b) => s + b.remaining, 0)
+          const totalF5 = bottlesWithStats.reduce((s, b) => s + b.fills.f5, 0)
+          return (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4,1fr)',
+                gap: 10,
+                marginBottom: 20
+              }}
+            >
+              {[
+                {
+                  label: 'Total ml remaining',
+                  value: `${totalMl.toFixed(0)}ml`
+                },
+                { label: 'Can fill (5ml)', value: `${totalF5} decants` },
+                {
+                  label: 'Low / Critical',
+                  value: `${critical} bottles`,
+                  alert: critical > 0
+                },
+                { label: 'Fragrance lines', value: `${bottles.length}` }
+              ].map(({ label, value, alert }) => (
+                <div
+                  key={label}
+                  style={{
+                    background: 'var(--w04)',
+                    border: `0.5px solid ${alert ? 'rgba(220,80,80,0.3)' : 'var(--w08)'}`,
+                    borderRadius: 6,
+                    padding: '10px 14px'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: alert ? '#dc5050' : 'var(--w35)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      marginBottom: 4
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontFamily: 'var(--ff-serif)',
+                      color: alert ? '#dc5050' : 'var(--gold)'
+                    }}
+                  >
+                    {value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+      {/* Add Bottle Modal */}
       {showAdd && (
         <div
           style={{
-            background: 'rgba(176,144,96,0.05)',
-            border: '0.5px solid rgba(176,144,96,0.2)',
-            borderRadius: 8,
-            padding: '1.25rem',
-            marginBottom: 20
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => setShowAdd(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 540
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'var(--gold)',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600
+                }}
+              >
+                Add Bottle to Inventory
+              </div>
+              <button
+                onClick={() => setShowAdd(false)}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w06)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--w60)',
+                  width: 28,
+                  height: 28,
+                  padding: 0,
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 2fr',
+                gap: 10,
+                marginBottom: 10
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Brand</label>
+                <input
+                  style={S.inp}
+                  value={form.brand}
+                  onChange={(e) => set('brand', e.target.value)}
+                  placeholder='Rasasi'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Fragrance Name</label>
+                <input
+                  style={S.inp}
+                  value={form.name}
+                  onChange={(e) => set('name', e.target.value)}
+                  placeholder='Hawas Ice'
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 10,
+                marginBottom: 10
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Bottle Size (ml)</label>
+                <input
+                  style={S.inp}
+                  type='number'
+                  value={form.start_ml}
+                  onChange={(e) => set('start_ml', e.target.value)}
+                  placeholder='100'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>
+                  Link to Product{' '}
+                  <span style={{ color: 'var(--w30)' }}>optional</span>
+                </label>
+                <select
+                  style={S.inp}
+                  value={form.product_id}
+                  onChange={(e) => set('product_id', e.target.value)}
+                >
+                  <option value=''>— none —</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.brand} {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <label style={S.lbl}>
+                Notes <span style={{ color: 'var(--w30)' }}>optional</span>
+              </label>
+              <input
+                style={S.inp}
+                value={form.notes}
+                onChange={(e) => set('notes', e.target.value)}
+                placeholder='Bought Apr 2026, Scentoria, ₹12,000'
+              />
+            </div>
+            <button
+              onClick={addBottle}
+              disabled={saving}
+              style={{
+                ...S.btn,
+                background: 'var(--gold)',
+                color: '#fff',
+                padding: '10px 24px',
+                fontSize: 12,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                width: '100%'
+              }}
+            >
+              {saving ? 'Saving...' : 'Add to Inventory'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Adjustment Modal */}
+      {adjBottle && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => {
+            setAdjBottle(null)
+            setAdjMl('')
+            setAdjNote('')
           }}
         >
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 2fr 1fr',
-              gap: 10,
-              marginBottom: 10
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 460
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div>
-              <label style={S.lbl}>Brand</label>
-              <input
-                style={S.inp}
-                value={form.brand}
-                onChange={(e) => set('brand', e.target.value)}
-                placeholder='Rasasi'
-              />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 4
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'var(--gold)',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600
+                }}
+              >
+                Adjust Inventory
+              </div>
+              <button
+                onClick={() => setAdjBottle(null)}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w06)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--w60)',
+                  width: 28,
+                  height: 28,
+                  padding: 0,
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4
+                }}
+              >
+                ×
+              </button>
             </div>
-            <div>
-              <label style={S.lbl}>Fragrance Name</label>
-              <input
-                style={S.inp}
-                value={form.name}
-                onChange={(e) => set('name', e.target.value)}
-                placeholder='Hawas Ice'
-              />
+            <div
+              style={{
+                fontSize: 13,
+                color: 'var(--w85)',
+                fontFamily: 'var(--ff-serif)',
+                marginBottom: 2
+              }}
+            >
+              {adjBottle.brand} {adjBottle.name}
             </div>
-            <div>
-              <label style={S.lbl}>Bottle Size (ml)</label>
-              <input
-                style={S.inp}
-                type='number'
-                value={form.start_ml}
-                onChange={(e) => set('start_ml', e.target.value)}
-                placeholder='150'
-              />
+            <div
+              style={{ fontSize: 11, color: 'var(--w35)', marginBottom: 18 }}
+            >
+              {adjBottle.remaining?.toFixed(0)}ml currently remaining
             </div>
+
+            {/* Type selector */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={S.lbl}>Adjustment Type</label>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 6,
+                  marginTop: 6
+                }}
+              >
+                {Object.entries(adjTypeLabels).map(([key, { label }]) => (
+                  <button
+                    key={key}
+                    onClick={() => setAdjType(key)}
+                    style={{
+                      ...S.btn,
+                      padding: '5px 10px',
+                      fontSize: 11,
+                      background:
+                        adjType === key ? 'var(--gold-20)' : 'var(--w06)',
+                      border: `0.5px solid ${adjType === key ? 'var(--gold-50)' : 'var(--w12)'}`,
+                      color: adjType === key ? 'var(--gold)' : 'var(--w60)'
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--w30)', marginTop: 6 }}>
+                {adjTypeLabels[adjType].hint}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 2fr',
+                gap: 10,
+                marginBottom: 16
+              }}
+            >
+              <div>
+                <label style={S.lbl}>{adjTypeLabels[adjType].sign} ml</label>
+                <input
+                  style={{
+                    ...S.inp,
+                    color: adjType === 'topup' ? 'var(--green-txt)' : '#dc5050',
+                    fontWeight: 600
+                  }}
+                  type='number'
+                  min='0.5'
+                  step='0.5'
+                  value={adjMl}
+                  onChange={(e) => setAdjMl(e.target.value)}
+                  placeholder='10'
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>
+                  Note <span style={{ color: 'var(--w30)' }}>optional</span>
+                </label>
+                <input
+                  style={S.inp}
+                  value={adjNote}
+                  onChange={(e) => setAdjNote(e.target.value)}
+                  placeholder='e.g. Filled 2 bottles for order #SS-012'
+                />
+              </div>
+            </div>
+
+            {adjMl && (
+              <div
+                style={{
+                  background: 'var(--w04)',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  marginBottom: 14,
+                  fontSize: 12
+                }}
+              >
+                <span style={{ color: 'var(--w50)' }}>After adjustment: </span>
+                <span
+                  style={{
+                    color:
+                      adjType === 'topup' ? 'var(--green-txt)' : 'var(--gold)',
+                    fontWeight: 600
+                  }}
+                >
+                  {(
+                    adjBottle.remaining +
+                    (adjType === 'topup' ? Number(adjMl) : -Number(adjMl))
+                  ).toFixed(0)}
+                  ml remaining
+                </span>
+              </div>
+            )}
+
+            <button
+              onClick={saveAdj}
+              disabled={saving || !adjMl}
+              style={{
+                ...S.btn,
+                background:
+                  adjType === 'topup' ? 'var(--green-txt)' : 'var(--gold)',
+                color: '#fff',
+                padding: '10px 24px',
+                fontSize: 12,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                width: '100%',
+                opacity: !adjMl ? 0.5 : 1
+              }}
+            >
+              {saving
+                ? 'Saving...'
+                : `${adjTypeLabels[adjType].sign}${adjMl || '?'}ml — ${adjTypeLabels[adjType].label}`}
+            </button>
           </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={S.lbl}>Notes (optional)</label>
-            <input
-              style={S.inp}
-              value={form.notes}
-              onChange={(e) => set('notes', e.target.value)}
-              placeholder='Bought Apr 2026, Scentoria'
-            />
-          </div>
-          <button
-            onClick={addBottle}
-            style={{
-              ...S.btn,
-              background: '#b09060',
-              color: '#fff',
-              padding: '9px 20px',
-              fontSize: 12,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase'
-            }}
-          >
-            Save Bottle
-          </button>
         </div>
       )}
 
+      {/* Bottles grid */}
       {loading ? (
-        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
-          Loading...
+        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
+      ) : bottlesWithStats.length === 0 ? (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '4rem 0',
+            color: 'var(--w30)'
+          }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🍶</div>
+          <div style={{ fontSize: 14 }}>
+            No bottles tracked yet. Add one above.
+          </div>
         </div>
       ) : (
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))',
+            gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))',
             gap: 12
           }}
         >
@@ -2424,9 +3788,10 @@ function StockTab() {
               style={{
                 ...S.card,
                 opacity: b.status === 'empty' ? 0.6 : 1,
-                border: `0.5px solid ${b.status === 'critical' || b.status === 'empty' ? 'rgba(220,80,80,0.25)' : 'rgba(255,255,255,0.08)'}`
+                border: `0.5px solid ${b.status === 'critical' || b.status === 'empty' ? 'rgba(220,80,80,0.25)' : 'var(--w08)'}`
               }}
             >
+              {/* Brand / Name */}
               <div
                 style={{
                   fontSize: 10,
@@ -2440,15 +3805,54 @@ function StockTab() {
               </div>
               <div
                 style={{
-                  fontSize: 14,
-                  color: 'rgba(255,255,255,0.9)',
-                  fontFamily: 'var(--ff-serif)',
-                  marginBottom: 10
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: 8
                 }}
               >
-                {b.name}
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: 'var(--w90)',
+                    fontFamily: 'var(--ff-serif)'
+                  }}
+                >
+                  {b.name}
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    onClick={() => setAdjBottle(b)}
+                    style={{
+                      ...S.btn,
+                      fontSize: 10,
+                      background: 'var(--gold-08)',
+                      border: '0.5px solid var(--gold-20)',
+                      color: 'var(--gold)',
+                      padding: '2px 8px',
+                      borderRadius: 3
+                    }}
+                  >
+                    Adjust
+                  </button>
+                  <button
+                    onClick={() => deleteBottle(b.id)}
+                    style={{
+                      ...S.btn,
+                      fontSize: 10,
+                      color: 'rgba(220,80,80,0.5)',
+                      background: 'none',
+                      padding: '2px 6px',
+                      border: 'none'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-              <div style={{ marginBottom: 8 }}>
+
+              {/* Progress bar */}
+              <div style={{ marginBottom: 10 }}>
                 <div
                   style={{
                     display: 'flex',
@@ -2456,10 +3860,8 @@ function StockTab() {
                     marginBottom: 4
                   }}
                 >
-                  <span
-                    style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}
-                  >
-                    {b.remaining.toFixed(0)}ml left of {b.start_ml}ml
+                  <span style={{ fontSize: 11, color: 'var(--w40)' }}>
+                    {b.remaining.toFixed(0)}ml of {b.start_ml}ml
                   </span>
                   <span
                     style={{ fontSize: 11, color: b.color, fontWeight: 600 }}
@@ -2469,8 +3871,8 @@ function StockTab() {
                 </div>
                 <div
                   style={{
-                    height: 5,
-                    background: 'rgba(255,255,255,0.07)',
+                    height: 6,
+                    background: 'var(--w06)',
                     borderRadius: 3
                   }}
                 >
@@ -2485,57 +3887,130 @@ function StockTab() {
                   />
                 </div>
               </div>
+
+              {/* Decant capacity */}
               <div
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4,1fr)',
+                  gap: 4,
+                  marginBottom: 10
                 }}
               >
-                <div>
-                  <span
-                    style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}
+                {[
+                  ['5ml', b.fills.f5],
+                  ['10ml', b.fills.f10],
+                  ['20ml', b.fills.f20],
+                  ['30ml', b.fills.f30]
+                ].map(([sz, n]) => (
+                  <div
+                    key={sz}
+                    style={{
+                      textAlign: 'center',
+                      background: n > 0 ? 'var(--gold-05)' : 'var(--w04)',
+                      border: `0.5px solid ${n > 0 ? 'var(--gold-15)' : 'var(--w06)'}`,
+                      borderRadius: 4,
+                      padding: '4px 2px'
+                    }}
                   >
-                    Used: {b.used}ml{' '}
-                    {b.used > 0
-                      ? `(~${Math.floor(b.used / 5)} × 5ml decants)`
-                      : ''}
-                  </span>
-                  {!b.canFulfil && (
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: n > 0 ? 'var(--gold)' : 'var(--w20)'
+                      }}
+                    >
+                      {n}
+                    </div>
                     <div
                       style={{
                         fontSize: 9,
-                        color: '#dc5050',
-                        marginTop: 2,
-                        letterSpacing: '0.06em',
-                        textTransform: 'uppercase'
+                        color: 'var(--w30)',
+                        letterSpacing: '0.06em'
                       }}
                     >
-                      ⚡ Too low to fulfil — product auto-marked sold out
+                      {sz}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Linked product */}
+              {b.linkedProduct && (
+                <div
+                  style={{ fontSize: 10, color: 'var(--w35)', marginBottom: 4 }}
+                >
+                  🔗 {b.linkedProduct.brand} {b.linkedProduct.name}
+                  {b.linkedProduct.sold_out && (
+                    <span style={{ color: '#dc5050', marginLeft: 6 }}>
+                      SOLD OUT
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Adj log (last 3) */}
+              {b.adjs.length > 0 && (
+                <div
+                  style={{
+                    borderTop: '0.5px solid var(--w06)',
+                    marginTop: 8,
+                    paddingTop: 8
+                  }}
+                >
+                  {b.adjs
+                    .slice(-3)
+                    .reverse()
+                    .map((a, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          fontSize: 10,
+                          color: 'var(--w30)',
+                          marginBottom: 2
+                        }}
+                      >
+                        <span>
+                          {adjTypeLabels[a.type]?.label || a.type}{' '}
+                          {a.note ? `· ${a.note}` : ''}
+                        </span>
+                        <span
+                          style={{
+                            color: a.delta > 0 ? 'var(--green-txt)' : '#dc5050',
+                            fontWeight: 600
+                          }}
+                        >
+                          {a.delta > 0 ? '+' : ''}
+                          {a.delta}ml
+                        </span>
+                      </div>
+                    ))}
+                  {b.adjs.length > 3 && (
+                    <div style={{ fontSize: 10, color: 'var(--w20)' }}>
+                      +{b.adjs.length - 3} more adjustments
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => deleteBottle(b.id)}
-                  style={{
-                    ...S.btn,
-                    fontSize: 10,
-                    color: 'rgba(220,80,80,0.5)',
-                    background: 'none',
-                    padding: '2px 6px',
-                    border: 'none'
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-              {b.notes && (
+              )}
+
+              {!b.canFulfil && (
                 <div
                   style={{
-                    fontSize: 10,
-                    color: 'rgba(255,255,255,0.2)',
-                    marginTop: 6
+                    fontSize: 9,
+                    color: '#dc5050',
+                    marginTop: 6,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase'
                   }}
+                >
+                  ⚡ Too low — product auto-marked sold out
+                </div>
+              )}
+              {b.notes && (
+                <div
+                  style={{ fontSize: 10, color: 'var(--w20)', marginTop: 6 }}
                 >
                   {b.notes}
                 </div>
