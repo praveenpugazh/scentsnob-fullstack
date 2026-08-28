@@ -2412,15 +2412,23 @@ function ProductsTab() {
   }
 
   const toggleIsNew = async (p) => {
+    const markingNew = !p.is_new
+    // If marking as new, also make visible — can't show in New Arrivals if hidden
+    const patch = { is_new: markingNew }
+    if (markingNew && !p.visible) patch.visible = true
+
     const r = await fetch(`/api/products/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_new: !p.is_new })
+      body: JSON.stringify(patch)
     })
     const updated = await r.json()
     setProducts((ps) =>
       ps.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
     )
+    if (markingNew && !p.visible) {
+      showToast(`${p.brand} ${p.name} marked New + made visible`)
+    }
   }
 
   const startEdit = (p) => {
@@ -3958,6 +3966,21 @@ function ProductsTab() {
                         : `🟡 ${p.ml_remaining}ml left`}
                     </span>
                   )}
+                {p.is_new && !p.visible && (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      padding: '2px 6px',
+                      borderRadius: 3,
+                      background: 'rgba(220,80,80,0.08)',
+                      border: '0.5px solid rgba(220,80,80,0.25)',
+                      color: '#dc5050',
+                      letterSpacing: '0.06em'
+                    }}
+                  >
+                    ⚠ Marked New but Hidden — won't show on site
+                  </span>
+                )}
                 <button
                   onClick={() => toggleIsNew(p)}
                   title={
