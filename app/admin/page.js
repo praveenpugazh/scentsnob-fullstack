@@ -2611,36 +2611,61 @@ function ProductsTab() {
     if (file) parseFile(file)
   }
 
+  const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
+
   const runImport = async () => {
     if (!importRows.length) return
     setImporting(true)
-    let created = 0,
-      skipped = 0
-    for (const row of importRows) {
-      // Skip if brand+name already exists
-      const exists = products.some(
-        (p) =>
-          p.brand.toLowerCase() === row.brand.toLowerCase() &&
-          p.name.toLowerCase() === row.name.toLowerCase()
+
+    const toImport = importRows.filter(
+      (row) =>
+        !products.some(
+          (p) =>
+            p.brand.toLowerCase() === row.brand.toLowerCase() &&
+            p.name.toLowerCase() === row.name.toLowerCase()
+        )
+    )
+    const skipped = importRows.length - toImport.length
+    setImportProgress({ done: 0, total: toImport.length })
+
+    // Batch in groups of 5 parallel, 8s timeout each
+    const BATCH = 5
+    let created = 0
+    const newProducts = []
+
+    for (let i = 0; i < toImport.length; i += BATCH) {
+      const batch = toImport.slice(i, i + BATCH)
+      const results = await Promise.allSettled(
+        batch.map((row) =>
+          Promise.race([
+            fetch('/api/products', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(row)
+            }).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('timeout')), 8000)
+            )
+          ])
+        )
       )
-      if (exists) {
-        skipped++
-        continue
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value?.id) {
+          newProducts.push(result.value)
+          created++
+        }
       }
-      const r = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(row)
+      setImportProgress({
+        done: Math.min(i + BATCH, toImport.length),
+        total: toImport.length
       })
-      if (r.ok) {
-        const created_product = await r.json()
-        setProducts((ps) => [...ps, created_product])
-        created++
-      } else skipped++
     }
+
+    if (newProducts.length) setProducts((ps) => [...ps, ...newProducts])
     setImportDone({ created, skipped })
     setImporting(false)
     setImportRows([])
+    setImportProgress({ done: 0, total: 0 })
   }
   // ── End Excel Import ──────────────────────────────────────────────
 
@@ -3190,24 +3215,74 @@ function ProductsTab() {
                     </tbody>
                   </table>
                 </div>
+                {importing && importProgress.total > 0 && (
+                  <div style={{ marginTop: 12, marginBottom: 4 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: 10,
+                        color: 'var(--t3)',
+                        marginBottom: 5,
+                        letterSpacing: '0.06em'
+                      }}
+                    >
+                      <span>Importing in batches of 5...</span>
+                      <span>
+                        {importProgress.done} / {importProgress.total}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 4,
+                        background: 'var(--w08)',
+                        borderRadius: 2
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          borderRadius: 2,
+                          background: 'var(--gold)',
+                          width: `${Math.round((importProgress.done / importProgress.total) * 100)}%`,
+                          transition: 'width 0.4s ease'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                   <button
                     onClick={runImport}
                     disabled={importing}
                     style={{
                       ...S.btn,
-                      background: 'var(--gold)',
+                      background: importing
+                        ? 'rgba(176,144,96,0.6)'
+                        : 'var(--gold)',
                       color: '#fff',
                       padding: '10px 0',
                       fontSize: 13,
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
-                      flex: 1
+                      flex: 1,
+                      cursor: importing ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8
                     }}
                   >
-                    {importing
-                      ? 'Importing...'
-                      : `✓ Import ${importRows.filter((r) => !products.some((p) => p.brand.toLowerCase() === r.brand.toLowerCase() && p.name.toLowerCase() === r.name.toLowerCase())).length} Products`}
+                    {importing ? (
+                      <>
+                        <Spinner size={14} color='#fff' />
+                        {importProgress.total > 0
+                          ? `${importProgress.done} / ${importProgress.total} done...`
+                          : 'Starting...'}
+                      </>
+                    ) : (
+                      `✓ Import ${importRows.filter((r) => !products.some((p) => p.brand.toLowerCase() === r.brand.toLowerCase() && p.name.toLowerCase() === r.name.toLowerCase())).length} Products`
+                    )}
                   </button>
                   <button
                     onClick={() => {
