@@ -2669,11 +2669,58 @@ function ProductsTab() {
   }
   // ── End Excel Import ──────────────────────────────────────────────
 
-  const filtered = products.filter(
-    (p) =>
-      !search ||
-      `${p.brand} ${p.name}`.toLowerCase().includes(search.toLowerCase())
-  )
+  const [sortBy, setSortBy] = useState('brand') // brand | name | p10 | ml_remaining | status
+  const [sortDir, setSortDir] = useState('asc')
+
+  const toggleSort = (key) => {
+    if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else {
+      setSortBy(key)
+      setSortDir('asc')
+    }
+  }
+
+  const filtered = products
+    .filter(
+      (p) =>
+        !search ||
+        `${p.brand} ${p.name}`.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      let av, bv
+      switch (sortBy) {
+        case 'brand':
+          av = `${a.brand} ${a.name}`
+          bv = `${b.brand} ${b.name}`
+          break
+        case 'name':
+          av = a.name
+          bv = b.name
+          break
+        case 'p10':
+          av = a.p10 || 0
+          bv = b.p10 || 0
+          break
+        case 'ml_remaining':
+          av = a.ml_remaining ?? 9999
+          bv = b.ml_remaining ?? 9999
+          break
+        case 'status':
+          av = a.sold_out ? 1 : 0
+          bv = b.sold_out ? 1 : 0
+          break
+        case 'category':
+          av = a.category || ''
+          bv = b.category || ''
+          break
+        default:
+          av = a.brand
+          bv = b.brand
+      }
+      if (typeof av === 'string')
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      return sortDir === 'asc' ? av - bv : bv - av
+    })
 
   return (
     <div>
@@ -2692,6 +2739,53 @@ function ProductsTab() {
           placeholder='Search products...'
           style={{ ...S.inp, maxWidth: 300 }}
         />
+
+        {/* Sort controls */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 4,
+            alignItems: 'center',
+            flexWrap: 'wrap'
+          }}
+        >
+          {[
+            { key: 'brand', label: 'Brand' },
+            { key: 'name', label: 'Name' },
+            { key: 'category', label: 'Type' },
+            { key: 'p10', label: '10ml ₹' },
+            { key: 'ml_remaining', label: 'Stock' },
+            { key: 'status', label: 'Status' }
+          ].map(({ key, label }) => {
+            const active = sortBy === key
+            return (
+              <button
+                key={key}
+                onClick={() => toggleSort(key)}
+                style={{
+                  ...S.btn,
+                  fontSize: 10,
+                  padding: '3px 9px',
+                  background: active ? 'var(--gold-12)' : 'var(--w06)',
+                  border: `0.5px solid ${active ? 'var(--gold-30)' : 'var(--w10)'}`,
+                  color: active ? 'var(--gold)' : 'var(--t3)',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+              >
+                {label}
+                {active && (
+                  <span style={{ fontSize: 9 }}>
+                    {sortDir === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
         <div
           style={{
             display: 'flex',
