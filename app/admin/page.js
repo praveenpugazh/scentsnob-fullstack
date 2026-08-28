@@ -14,13 +14,13 @@ const S = {
     borderRadius: 4
   },
   inp: {
-    background: 'rgba(255,255,255,0.06)',
-    border: '0.5px solid rgba(255,255,255,0.15)',
+    background: 'var(--bg)',
+    border: '0.5px solid var(--w15)',
     borderRadius: 4,
     padding: '8px 10px',
     fontFamily: 'var(--ff-sans)',
     fontSize: 13,
-    color: '#fff',
+    color: 'var(--t1)',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box'
@@ -29,13 +29,13 @@ const S = {
     fontSize: 10,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.4)',
+    color: 'var(--w40)',
     display: 'block',
     marginBottom: 4
   },
   card: {
-    background: 'rgba(255,255,255,0.02)',
-    border: '0.5px solid rgba(255,255,255,0.08)',
+    background: 'var(--bg2)',
+    border: '0.5px solid var(--w08)',
     borderRadius: 6,
     padding: '0.85rem 1rem'
   }
@@ -46,7 +46,7 @@ const STATUS_COLORS = {
   Pending: '#b09060',
   Paid: '#4a9eff',
   Shipped: '#9b59b6',
-  Delivered: '#4caf7d',
+  Delivered: 'var(--green-txt)',
   Cancelled: '#dc5050'
 }
 
@@ -77,9 +77,9 @@ function StatusStepper({ status, onChange }) {
             ...S.btn,
             fontSize: 10,
             padding: '3px 9px',
-            background: 'rgba(255,255,255,0.05)',
-            color: 'rgba(255,255,255,0.4)',
-            border: '0.5px solid rgba(255,255,255,0.12)',
+            background: 'var(--bg3)',
+            color: 'var(--w40)',
+            border: '0.5px solid var(--w12)',
             borderRadius: 20
           }}
         >
@@ -94,9 +94,9 @@ function StatusStepper({ status, onChange }) {
             ...S.btn,
             fontSize: 10,
             padding: '3px 7px',
-            background: 'rgba(220,80,80,0.08)',
+            background: 'var(--red-bg)',
             color: 'rgba(220,80,80,0.5)',
-            border: '0.5px solid rgba(220,80,80,0.2)',
+            border: '0.5px solid var(--red-br)',
             borderRadius: 20
           }}
         >
@@ -384,7 +384,7 @@ function OrdersTab() {
                 onClick={() => setShowManual(false)}
                 style={{
                   ...S.btn,
-                  background: 'var(--w06)',
+                  background: 'var(--bg3)',
                   border: '0.5px solid var(--w12)',
                   color: 'var(--w60)',
                   width: 28,
@@ -672,7 +672,7 @@ function OrdersTab() {
             {manualForm.items.length > 0 && (
               <div
                 style={{
-                  background: 'var(--w04)',
+                  background: 'var(--bg3)',
                   border: '0.5px solid var(--w08)',
                   borderRadius: 6,
                   marginBottom: 16,
@@ -914,7 +914,7 @@ function OrdersTab() {
                 onClick={() => setShowManual(false)}
                 style={{
                   ...S.btn,
-                  background: 'var(--w06)',
+                  background: 'var(--bg3)',
                   border: '0.5px solid var(--w12)',
                   color: 'var(--w60)',
                   padding: '11px 20px',
@@ -961,7 +961,7 @@ function OrdersTab() {
                 ...S.card,
                 borderColor:
                   label === 'Pending' && pendingCount > 0
-                    ? 'rgba(176,144,96,0.3)'
+                    ? 'var(--gold-30)'
                     : undefined
               }}
             >
@@ -970,7 +970,7 @@ function OrdersTab() {
                   fontSize: 9,
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.35)',
+                  color: 'var(--w35)',
                   marginBottom: 6
                 }}
               >
@@ -982,7 +982,7 @@ function OrdersTab() {
                   color:
                     label === 'Pending' && pendingCount > 0
                       ? '#b09060'
-                      : 'rgba(255,255,255,0.9)',
+                      : 'var(--w90)',
                   fontWeight: 300,
                   fontFamily: 'var(--ff-serif)'
                 }}
@@ -996,7 +996,7 @@ function OrdersTab() {
                     color:
                       label === 'Pending' && pendingCount > 0
                         ? '#b09060'
-                        : 'rgba(255,255,255,0.25)',
+                        : 'var(--w25)',
                     marginTop: 2
                   }}
                 >
@@ -1050,13 +1050,11 @@ function OrdersTab() {
                     filter === f
                       ? STATUS_COLORS[f]
                         ? `${STATUS_COLORS[f]}22`
-                        : 'rgba(176,144,96,0.15)'
-                      : 'rgba(255,255,255,0.03)',
+                        : 'var(--gold-15)'
+                      : 'var(--w03)',
                   color:
-                    filter === f
-                      ? STATUS_COLORS[f] || '#b09060'
-                      : 'rgba(255,255,255,0.35)',
-                  border: `0.5px solid ${filter === f ? (STATUS_COLORS[f] ? `${STATUS_COLORS[f]}44` : 'rgba(176,144,96,0.3)') : 'rgba(255,255,255,0.08)'}`
+                    filter === f ? STATUS_COLORS[f] || '#b09060' : 'var(--w35)',
+                  border: `0.5px solid ${filter === f ? (STATUS_COLORS[f] ? `${STATUS_COLORS[f]}44` : 'var(--gold-30)') : 'var(--w08)'}`
                 }}
               >
                 {f}
@@ -1067,7 +1065,7 @@ function OrdersTab() {
       </div>
 
       {loading ? (
-        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
+        <div style={{ color: 'var(--w30)', padding: '2rem' }}>
           Loading orders...
         </div>
       ) : (
@@ -1075,10 +1073,12 @@ function OrdersTab() {
           <div
             key={order.id}
             style={{
-              ...S.card,
+              background: 'var(--bg2)',
+              border: `0.5px solid ${order.status === 'Pending' ? 'var(--gold-25)' : 'var(--w08)'}`,
+              borderRadius: 8,
+              padding: '0.85rem 1rem',
               marginBottom: 10,
-              borderColor:
-                order.status === 'Pending' ? 'rgba(176,144,96,0.2)' : undefined
+              boxShadow: '0 1px 8px rgba(0,0,0,0.18)'
             }}
           >
             <div
@@ -1109,9 +1109,7 @@ function OrdersTab() {
                   >
                     {order.order_ref}
                   </span>
-                  <span
-                    style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}
-                  >
+                  <span style={{ fontSize: 10, color: 'var(--w25)' }}>
                     {new Date(order.created_at).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
@@ -1122,20 +1120,20 @@ function OrdersTab() {
                 <div
                   style={{
                     fontSize: 14,
-                    color: 'rgba(255,255,255,0.85)',
+                    color: 'var(--w85)',
                     fontWeight: 500
                   }}
                 >
                   {order.customer}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                <div style={{ fontSize: 12, color: 'var(--w40)' }}>
                   {order.phone}
                 </div>
                 {order.address && (
                   <div
                     style={{
                       fontSize: 11,
-                      color: 'rgba(255,255,255,0.25)',
+                      color: 'var(--w25)',
                       marginTop: 4,
                       maxWidth: 300
                     }}
@@ -1155,7 +1153,7 @@ function OrdersTab() {
                 <div
                   style={{
                     fontSize: 20,
-                    color: 'rgba(255,255,255,0.9)',
+                    color: 'var(--w90)',
                     fontWeight: 500
                   }}
                 >
@@ -1194,7 +1192,7 @@ function OrdersTab() {
                 style={{
                   marginTop: 10,
                   paddingTop: 10,
-                  borderTop: '0.5px solid rgba(255,255,255,0.06)'
+                  borderTop: '0.5px solid var(--w06)'
                 }}
               >
                 {order.items.map((item, i) => (
@@ -1202,7 +1200,7 @@ function OrdersTab() {
                     key={i}
                     style={{
                       fontSize: 12,
-                      color: 'rgba(255,255,255,0.4)',
+                      color: 'var(--w40)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       marginBottom: 2
@@ -1211,7 +1209,7 @@ function OrdersTab() {
                     <span>
                       {item.brand} {item.name} ({item.size}) ×{item.qty}
                     </span>
-                    <span style={{ color: 'rgba(255,255,255,0.55)' }}>
+                    <span style={{ color: 'var(--w55)' }}>
                       {formatINR(item.price * item.qty)}
                     </span>
                   </div>
@@ -1222,9 +1220,9 @@ function OrdersTab() {
                     justifyContent: 'space-between',
                     marginTop: 6,
                     paddingTop: 6,
-                    borderTop: '0.5px solid rgba(255,255,255,0.04)',
+                    borderTop: '0.5px solid var(--w04)',
                     fontSize: 11,
-                    color: 'rgba(255,255,255,0.25)'
+                    color: 'var(--w25)'
                   }}
                 >
                   <span>
@@ -1241,7 +1239,7 @@ function OrdersTab() {
       {!loading && filtered.length === 0 && (
         <div
           style={{
-            color: 'rgba(255,255,255,0.25)',
+            color: 'var(--w25)',
             padding: '3rem',
             textAlign: 'center'
           }}
@@ -1484,12 +1482,12 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
       >
         <span
           style={{
-            color: value ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'
+            color: value ? 'var(--w90)' : 'var(--w30)'
           }}
         >
           {value || 'Select brand...'}
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>
+        <span style={{ color: 'var(--w30)', fontSize: 10 }}>
           {open ? '▲' : '▼'}
         </span>
       </div>
@@ -1501,8 +1499,8 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
             left: 0,
             right: 0,
             zIndex: 400,
-            background: '#1a1714',
-            border: '0.5px solid rgba(176,144,96,0.3)',
+            background: 'var(--bg4)',
+            border: '0.5px solid var(--gold-30)',
             borderRadius: 6,
             marginTop: 4,
             maxHeight: 240,
@@ -1513,7 +1511,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
           <div
             style={{
               padding: '8px 10px',
-              borderBottom: '0.5px solid rgba(255,255,255,0.06)'
+              borderBottom: '0.5px solid var(--w06)'
             }}
           >
             <input
@@ -1526,7 +1524,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 background: 'none',
                 border: 'none',
                 outline: 'none',
-                color: 'rgba(255,255,255,0.9)',
+                color: 'var(--w90)',
                 fontSize: 13,
                 fontFamily: 'var(--ff-sans)'
               }}
@@ -1539,9 +1537,9 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 style={{
                   padding: '9px 12px',
                   fontSize: 12,
-                  color: '#4caf7d',
+                  color: 'var(--green-txt)',
                   cursor: 'pointer',
-                  borderBottom: '0.5px solid rgba(255,255,255,0.04)',
+                  borderBottom: '0.5px solid var(--w04)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6
@@ -1555,7 +1553,7 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 style={{
                   padding: '12px',
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.3)',
+                  color: 'var(--w30)',
                   textAlign: 'center'
                 }}
               >
@@ -1569,16 +1567,16 @@ function BrandSelect({ value, onChange, allBrands, onCategoryChange }) {
                 style={{
                   padding: '9px 12px',
                   fontSize: 13,
-                  color: b === value ? '#b09060' : 'rgba(255,255,255,0.75)',
+                  color: b === value ? '#b09060' : 'var(--w75)',
                   cursor: 'pointer',
-                  background: b === value ? 'rgba(176,144,96,0.08)' : 'none'
+                  background: b === value ? 'var(--gold-08)' : 'none'
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')
+                  (e.currentTarget.style.background = 'var(--w05)')
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.background =
-                    b === value ? 'rgba(176,144,96,0.08)' : 'none')
+                    b === value ? 'var(--gold-08)' : 'none')
                 }
               >
                 {b}
@@ -1629,7 +1627,7 @@ function NotesSelect({ value, onChange }) {
                 padding: '3px 10px',
                 borderRadius: 20,
                 background: 'rgba(176,144,96,0.18)',
-                border: '0.5px solid rgba(176,144,96,0.4)',
+                border: '0.5px solid var(--gold-40)',
                 color: '#b09060',
                 cursor: 'pointer',
                 display: 'flex',
@@ -1643,7 +1641,7 @@ function NotesSelect({ value, onChange }) {
           <span
             style={{
               fontSize: 11,
-              color: 'rgba(255,255,255,0.25)',
+              color: 'var(--w25)',
               padding: '3px 0',
               alignSelf: 'center'
             }}
@@ -1681,12 +1679,12 @@ function NotesSelect({ value, onChange }) {
               cursor: 'pointer',
               border: 'none',
               background: selected.includes(a)
-                ? 'rgba(176,144,96,0.2)'
-                : 'rgba(255,255,255,0.05)',
-              color: selected.includes(a) ? '#b09060' : 'rgba(255,255,255,0.5)',
+                ? 'var(--gold-20)'
+                : 'var(--w05)',
+              color: selected.includes(a) ? '#b09060' : 'var(--w50)',
               outline: selected.includes(a)
-                ? '0.5px solid rgba(176,144,96,0.4)'
-                : '0.5px solid rgba(255,255,255,0.08)',
+                ? '0.5px solid var(--gold-40)'
+                : '0.5px solid var(--w08)',
               fontFamily: 'var(--ff-sans)'
             }}
           >
@@ -1702,13 +1700,13 @@ const S_modal = {
   inp: {
     width: '100%',
     boxSizing: 'border-box',
-    background: 'rgba(255,255,255,0.05)',
-    border: '0.5px solid rgba(255,255,255,0.12)',
+    background: 'var(--bg3)',
+    border: '0.5px solid var(--w12)',
     borderRadius: 6,
     padding: '10px 12px',
     fontFamily: 'var(--ff-sans)',
     fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'var(--w90)',
     outline: 'none'
   }
 }
@@ -1928,7 +1926,7 @@ function ProductsTab() {
             display: 'flex',
             gap: 8,
             fontSize: 11,
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--w30)',
             alignItems: 'center',
             flexShrink: 0
           }}
@@ -1988,8 +1986,8 @@ function ProductsTab() {
         >
           <div
             style={{
-              background: '#0e0c0a',
-              border: '0.5px solid rgba(176,144,96,0.25)',
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
               borderRadius: 10,
               padding: '1.75rem',
               width: '100%',
@@ -2039,7 +2037,7 @@ function ProductsTab() {
                 style={{
                   ...S.btn,
                   background: 'none',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--w40)',
                   fontSize: 20,
                   padding: '0 4px',
                   border: 'none'
@@ -2243,8 +2241,8 @@ function ProductsTab() {
             {/* Price fields — gold tint, user can override */}
             <div
               style={{
-                background: 'rgba(176,144,96,0.04)',
-                border: '0.5px solid rgba(176,144,96,0.12)',
+                background: 'var(--gold-04)',
+                border: '0.5px solid var(--gold-12)',
                 borderRadius: 6,
                 padding: '12px',
                 marginBottom: 12
@@ -2298,9 +2296,7 @@ function ProductsTab() {
               <div>
                 <label style={S.lbl}>
                   MRP — Full Bottle (₹){' '}
-                  <span
-                    style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 400 }}
-                  >
+                  <span style={{ color: 'var(--w25)', fontWeight: 400 }}>
                     optional
                   </span>
                 </label>
@@ -2348,9 +2344,9 @@ function ProductsTab() {
                 }}
                 style={{
                   ...S.btn,
-                  background: 'rgba(255,255,255,0.05)',
-                  color: 'rgba(255,255,255,0.5)',
-                  border: '0.5px solid rgba(255,255,255,0.1)',
+                  background: 'var(--bg3)',
+                  color: 'var(--w50)',
+                  border: '0.5px solid var(--w10)',
                   padding: '9px 20px',
                   fontSize: 12
                 }}
@@ -2379,7 +2375,7 @@ function ProductsTab() {
       <div
         style={{
           fontSize: 11,
-          color: 'rgba(255,255,255,0.3)',
+          color: 'var(--w30)',
           marginBottom: 10
         }}
       >
@@ -2387,9 +2383,7 @@ function ProductsTab() {
       </div>
 
       {loading ? (
-        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
-          Loading...
-        </div>
+        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {filtered.map((p) => (
@@ -2440,7 +2434,7 @@ function ProductsTab() {
                   <div
                     style={{
                       fontSize: 13,
-                      color: 'rgba(255,255,255,0.85)',
+                      color: 'var(--w85)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
@@ -2448,13 +2442,9 @@ function ProductsTab() {
                   >
                     {p.name}
                   </div>
-                  <div
-                    style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}
-                  >
+                  <div style={{ fontSize: 11, color: 'var(--w35)' }}>
                     ₹{p.p5} / ₹{p.p10} / ₹{p.p20} ·{' '}
-                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>
-                      {p.category}
-                    </span>
+                    <span style={{ color: 'var(--w20)' }}>{p.category}</span>
                   </div>
                 </div>
               </div>
@@ -2480,7 +2470,7 @@ function ProductsTab() {
                       style={{
                         fontSize: 9,
                         color: p.ml_remaining <= 10 ? '#dc5050' : 'var(--gold)',
-                        border: `0.5px solid ${p.ml_remaining <= 10 ? 'rgba(220,80,80,0.3)' : 'rgba(176,144,96,0.3)'}`,
+                        border: `0.5px solid ${p.ml_remaining <= 10 ? 'rgba(220,80,80,0.3)' : 'var(--gold-30)'}`,
                         borderRadius: 3,
                         padding: '2px 6px',
                         letterSpacing: '0.08em'
@@ -2504,9 +2494,9 @@ function ProductsTab() {
                     padding: '4px 8px',
                     background: p.is_new
                       ? 'rgba(100,160,255,0.15)'
-                      : 'rgba(255,255,255,0.04)',
-                    color: p.is_new ? '#6aa0ff' : 'rgba(255,255,255,0.3)',
-                    border: `0.5px solid ${p.is_new ? 'rgba(100,160,255,0.3)' : 'rgba(255,255,255,0.1)'}`
+                      : 'var(--w04)',
+                    color: p.is_new ? '#6aa0ff' : 'var(--w30)',
+                    border: `0.5px solid ${p.is_new ? 'rgba(100,160,255,0.3)' : 'var(--w10)'}`
                   }}
                 >
                   {p.is_new ? '★ New' : '☆ New'}
@@ -2520,8 +2510,8 @@ function ProductsTab() {
                     background: p.sold_out
                       ? 'rgba(76,175,125,0.15)'
                       : 'rgba(220,80,80,0.15)',
-                    color: p.sold_out ? '#4caf7d' : '#dc5050',
-                    border: `0.5px solid ${p.sold_out ? 'rgba(76,175,125,0.3)' : 'rgba(220,80,80,0.3)'}`
+                    color: p.sold_out ? 'var(--green-txt)' : '#dc5050',
+                    border: `0.5px solid ${p.sold_out ? 'var(--green-br)' : 'rgba(220,80,80,0.3)'}`
                   }}
                 >
                   {p.sold_out ? 'Unmark' : 'Sold Out'}
@@ -2532,9 +2522,9 @@ function ProductsTab() {
                     ...S.btn,
                     fontSize: 10,
                     padding: '4px 8px',
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'rgba(255,255,255,0.5)',
-                    border: '0.5px solid rgba(255,255,255,0.1)'
+                    background: 'var(--bg3)',
+                    color: 'var(--w50)',
+                    border: '0.5px solid var(--w10)'
                   }}
                 >
                   Edit
@@ -2547,7 +2537,7 @@ function ProductsTab() {
                     padding: '4px 8px',
                     background: 'rgba(220,80,80,0.1)',
                     color: '#dc5050',
-                    border: '0.5px solid rgba(220,80,80,0.2)'
+                    border: '0.5px solid var(--red-br)'
                   }}
                 >
                   ✕
@@ -2689,8 +2679,8 @@ function PartialsTab() {
           marginBottom: 16
         }}
       >
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-          <span style={{ color: '#4caf7d' }}>
+        <div style={{ fontSize: 13, color: 'var(--w50)' }}>
+          <span style={{ color: 'var(--green-txt)' }}>
             {partials.filter((p) => p.visible).length} live
           </span>
           {' · '}
@@ -2729,8 +2719,8 @@ function PartialsTab() {
       {showAdd && (
         <div
           style={{
-            background: 'rgba(176,144,96,0.05)',
-            border: '0.5px solid rgba(176,144,96,0.2)',
+            background: 'var(--gold-05)',
+            border: '0.5px solid var(--gold-20)',
             borderRadius: 8,
             padding: '1.25rem',
             marginBottom: 20
@@ -2851,7 +2841,7 @@ function PartialsTab() {
               htmlFor='vis'
               style={{
                 fontSize: 12,
-                color: 'rgba(255,255,255,0.6)',
+                color: 'var(--w60)',
                 cursor: 'pointer'
               }}
             >
@@ -2876,9 +2866,7 @@ function PartialsTab() {
       )}
 
       {loading ? (
-        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
-          Loading...
-        </div>
+        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {partials.map((p) => {
@@ -2886,7 +2874,7 @@ function PartialsTab() {
             const fullMl = Number(p.full_ml) || 1
             const pct = Math.min(100, Math.round((mlLeft / fullMl) * 100))
             const color =
-              pct > 50 ? '#4caf7d' : pct > 25 ? '#b09060' : '#dc5050'
+              pct > 50 ? 'var(--green-txt)' : pct > 25 ? '#b09060' : '#dc5050'
             return (
               <div
                 key={p.id}
@@ -2926,19 +2914,15 @@ function PartialsTab() {
                           borderRadius: 2,
                           background: p.visible
                             ? 'rgba(76,175,125,0.15)'
-                            : 'rgba(255,255,255,0.05)',
-                          color: p.visible
-                            ? '#4caf7d'
-                            : 'rgba(255,255,255,0.3)',
-                          border: `0.5px solid ${p.visible ? 'rgba(76,175,125,0.3)' : 'rgba(255,255,255,0.1)'}`
+                            : 'var(--w05)',
+                          color: p.visible ? 'var(--green-txt)' : 'var(--w30)',
+                          border: `0.5px solid ${p.visible ? 'var(--green-br)' : 'var(--w10)'}`
                         }}
                       >
                         {p.visible ? 'LIVE' : 'HIDDEN'}
                       </span>
                     </div>
-                    <div
-                      style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}
-                    >
+                    <div style={{ fontSize: 13, color: 'var(--w85)' }}>
                       {p.name}
                     </div>
                     <div
@@ -2953,7 +2937,7 @@ function PartialsTab() {
                         style={{
                           flex: 1,
                           height: 3,
-                          background: 'rgba(255,255,255,0.08)',
+                          background: 'var(--w08)',
                           borderRadius: 2
                         }}
                       >
@@ -2990,8 +2974,8 @@ function PartialsTab() {
                         background: p.visible
                           ? 'rgba(220,80,80,0.1)'
                           : 'rgba(76,175,125,0.1)',
-                        color: p.visible ? '#dc5050' : '#4caf7d',
-                        border: `0.5px solid ${p.visible ? 'rgba(220,80,80,0.2)' : 'rgba(76,175,125,0.2)'}`
+                        color: p.visible ? '#dc5050' : 'var(--green-txt)',
+                        border: `0.5px solid ${p.visible ? 'var(--red-br)' : 'rgba(76,175,125,0.2)'}`
                       }}
                     >
                       {p.visible ? 'Hide' : 'Go Live'}
@@ -3002,9 +2986,9 @@ function PartialsTab() {
                         ...S.btn,
                         fontSize: 10,
                         padding: '4px 8px',
-                        background: 'rgba(255,255,255,0.04)',
-                        color: 'rgba(255,255,255,0.4)',
-                        border: '0.5px solid rgba(255,255,255,0.1)'
+                        background: 'var(--bg3)',
+                        color: 'var(--w40)',
+                        border: '0.5px solid var(--w10)'
                       }}
                     >
                       {p.sold_out ? 'Unmark' : 'Sold Out'}
@@ -3015,9 +2999,9 @@ function PartialsTab() {
                         ...S.btn,
                         fontSize: 10,
                         padding: '4px 8px',
-                        background: 'rgba(255,255,255,0.04)',
-                        color: 'rgba(255,255,255,0.4)',
-                        border: '0.5px solid rgba(255,255,255,0.1)'
+                        background: 'var(--bg3)',
+                        color: 'var(--w40)',
+                        border: '0.5px solid var(--w10)'
                       }}
                     >
                       Edit
@@ -3030,7 +3014,7 @@ function PartialsTab() {
                         padding: '4px 8px',
                         background: 'rgba(220,80,80,0.1)',
                         color: '#dc5050',
-                        border: '0.5px solid rgba(220,80,80,0.2)'
+                        border: '0.5px solid var(--red-br)'
                       }}
                     >
                       ✕
@@ -3356,7 +3340,7 @@ function StockTab() {
                 <div
                   key={label}
                   style={{
-                    background: 'var(--w04)',
+                    background: 'var(--bg3)',
                     border: `0.5px solid ${alert ? 'rgba(220,80,80,0.3)' : 'var(--w08)'}`,
                     borderRadius: 6,
                     padding: '10px 14px'
@@ -3438,7 +3422,7 @@ function StockTab() {
                 onClick={() => setShowAdd(false)}
                 style={{
                   ...S.btn,
-                  background: 'var(--w06)',
+                  background: 'var(--bg3)',
                   border: '0.5px solid var(--w12)',
                   color: 'var(--w60)',
                   width: 28,
@@ -3603,7 +3587,7 @@ function StockTab() {
                 onClick={() => setAdjBottle(null)}
                 style={{
                   ...S.btn,
-                  background: 'var(--w06)',
+                  background: 'var(--bg3)',
                   border: '0.5px solid var(--w12)',
                   color: 'var(--w60)',
                   width: 28,
@@ -3710,7 +3694,7 @@ function StockTab() {
             {adjMl && (
               <div
                 style={{
-                  background: 'var(--w04)',
+                  background: 'var(--bg3)',
                   borderRadius: 6,
                   padding: '8px 12px',
                   marginBottom: 14,
@@ -3872,7 +3856,7 @@ function StockTab() {
                 <div
                   style={{
                     height: 6,
-                    background: 'var(--w06)',
+                    background: 'var(--bg3)',
                     borderRadius: 3
                   }}
                 >
@@ -4023,7 +4007,834 @@ function StockTab() {
   )
 }
 
-// ── PRICING TAB ──────────────────────────────────────────────────────────────
+// ── COMBOS TAB ───────────────────────────────────────────────────────────────
+function CombosTab() {
+  const [combos, setCombos] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editCombo, setEditCombo] = useState(null) // combo being edited
+  const [showAdd, setShowAdd] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [itemSearch, setItemSearch] = useState('')
+
+  const blankCombo = {
+    slug: '',
+    label: '',
+    emoji: '🧴',
+    tag: 'Starter Pack',
+    tagline: '',
+    color: '#b09060',
+    discount_pct: 10,
+    items: [],
+    active: true
+  }
+  const [form, setForm] = useState(blankCombo)
+  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/combos').then((r) => r.json()),
+      fetch('/api/products?admin=1').then((r) => r.json())
+    ]).then(([c, p]) => {
+      setCombos(Array.isArray(c) ? c : [])
+      setProducts(Array.isArray(p) ? p : [])
+      setLoading(false)
+    })
+  }, [])
+
+  const openEdit = (combo) => {
+    setForm({
+      slug: combo.slug,
+      label: combo.label,
+      emoji: combo.emoji || '🧴',
+      tag: combo.tag || 'Starter Pack',
+      tagline: combo.tagline || '',
+      color: combo.color || '#b09060',
+      discount_pct: combo.discount_pct ?? 10,
+      items: combo.items || [],
+      active: combo.active ?? true
+    })
+    setEditCombo(combo)
+    setShowAdd(true)
+  }
+
+  const openNew = () => {
+    setForm(blankCombo)
+    setEditCombo(null)
+    setShowAdd(true)
+  }
+
+  const close = () => {
+    setShowAdd(false)
+    setEditCombo(null)
+    setItemSearch('')
+  }
+
+  const addItem = (item) => {
+    setForm((f) => ({ ...f, items: [...f.items, { ...item, qty: 1 }] }))
+    setItemSearch('')
+  }
+
+  const removeItem = (idx) =>
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))
+
+  const updateItem = (idx, key, val) =>
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) => (i === idx ? { ...it, [key]: val } : it))
+    }))
+
+  const save = async () => {
+    if (!form.label || form.items.length === 0) return
+    setSaving(true)
+    const payload = {
+      slug:
+        form.slug ||
+        form.label
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, ''),
+      label: form.label,
+      emoji: form.emoji,
+      tag: form.tag,
+      tagline: form.tagline,
+      color: form.color,
+      discount_pct: Number(form.discount_pct),
+      items: form.items,
+      active: form.active
+    }
+    if (editCombo) {
+      const r = await fetch(`/api/combos/${editCombo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const updated = await r.json()
+      setCombos((cs) => cs.map((c) => (c.id === editCombo.id ? updated : c)))
+    } else {
+      const r = await fetch('/api/combos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const created = await r.json()
+      setCombos((cs) => [...cs, created])
+    }
+    setSaving(false)
+    close()
+  }
+
+  const deleteCombo = async (id) => {
+    if (!confirm('Delete this combo?')) return
+    await fetch(`/api/combos/${id}`, { method: 'DELETE' })
+    setCombos((cs) => cs.filter((c) => c.id !== id))
+  }
+
+  const toggleActive = async (combo) => {
+    const r = await fetch(`/api/combos/${combo.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !combo.active })
+    })
+    const updated = await r.json()
+    setCombos((cs) => cs.map((c) => (c.id === combo.id ? updated : c)))
+  }
+
+  // Search your actual products for item picker
+  const itemResults =
+    itemSearch.length < 1
+      ? []
+      : [
+          ...products.flatMap((p) => {
+            const typeMap = { niche: 'niche', designer: 'designer', dupe: 'me' }
+            const type = typeMap[p.category] || 'me'
+            return ['5ml', '10ml', '20ml', '30ml']
+              .map((size, i) => {
+                const prices = [p.p5, p.p10, p.p20, p.p30]
+                const price = prices[i]
+                if (!price) return null
+                return {
+                  brand: p.brand,
+                  name: p.name,
+                  size,
+                  price,
+                  type,
+                  label: `${p.brand} ${p.name} ${size}`
+                }
+              })
+              .filter(Boolean)
+          })
+        ]
+          .filter((x) =>
+            x.label.toLowerCase().includes(itemSearch.toLowerCase())
+          )
+          .slice(0, 8)
+
+  const subtotal = (items) => items.reduce((s, it) => s + Number(it.price), 0)
+  const discounted = (items, pct) =>
+    Math.round((subtotal(items) * (1 - pct / 100)) / 10) * 10
+
+  return (
+    <div>
+      {/* Modal */}
+      {showAdd && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '2rem 1rem',
+            overflowY: 'auto'
+          }}
+          onClick={close}
+        >
+          <div
+            style={{
+              background: 'var(--bg2)',
+              border: '0.5px solid var(--gold-25)',
+              borderRadius: 10,
+              padding: '1.75rem',
+              width: '100%',
+              maxWidth: 620,
+              marginBottom: '2rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'var(--gold)',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600
+                }}
+              >
+                {editCombo ? 'Edit Combo' : 'New Combo'}
+              </div>
+              <button
+                onClick={close}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w06)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--w60)',
+                  width: 28,
+                  height: 28,
+                  padding: 0,
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Basic info */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr 1fr',
+                gap: 10,
+                marginBottom: 10
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Emoji</label>
+                <input
+                  style={{ ...S.inp, textAlign: 'center', fontSize: 20 }}
+                  value={form.emoji}
+                  onChange={(e) => setF('emoji', e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Combo Name</label>
+                <input
+                  style={S.inp}
+                  value={form.label}
+                  onChange={(e) => setF('label', e.target.value)}
+                  placeholder='The Day Pack'
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Tag Label</label>
+                <input
+                  style={S.inp}
+                  value={form.tag}
+                  onChange={(e) => setF('tag', e.target.value)}
+                  placeholder='Starter Pack'
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={S.lbl}>Tagline</label>
+              <input
+                style={S.inp}
+                value={form.tagline}
+                onChange={(e) => setF('tagline', e.target.value)}
+                placeholder='Fresh scents for everyday wear...'
+              />
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 80px',
+                gap: 10,
+                marginBottom: 16
+              }}
+            >
+              <div>
+                <label style={S.lbl}>Card Colour</label>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type='color'
+                    value={form.color}
+                    onChange={(e) => setF('color', e.target.value)}
+                    style={{
+                      width: 36,
+                      height: 32,
+                      border: '0.5px solid var(--w12)',
+                      borderRadius: 4,
+                      background: 'none',
+                      cursor: 'pointer',
+                      padding: 2
+                    }}
+                  />
+                  <input
+                    style={{
+                      ...S.inp,
+                      flex: 1,
+                      fontFamily: 'monospace',
+                      fontSize: 12
+                    }}
+                    value={form.color}
+                    onChange={(e) => setF('color', e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={S.lbl}>Discount %</label>
+                <input
+                  style={{ ...S.inp, color: 'var(--gold)', fontWeight: 600 }}
+                  type='number'
+                  min='0'
+                  max='50'
+                  value={form.discount_pct}
+                  onChange={(e) => setF('discount_pct', e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>Active</label>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', height: 38 }}
+                >
+                  <input
+                    type='checkbox'
+                    checked={form.active}
+                    onChange={(e) => setF('active', e.target.checked)}
+                    style={{ width: 16, height: 16, cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Item picker — searches your actual products */}
+            <div
+              style={{
+                fontSize: 10,
+                color: 'var(--gold)',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+                fontWeight: 600
+              }}
+            >
+              Items{' '}
+              <span style={{ color: 'var(--w30)', fontWeight: 400 }}>
+                — search from your products
+              </span>
+            </div>
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <input
+                style={S.inp}
+                value={itemSearch}
+                onChange={(e) => setItemSearch(e.target.value)}
+                placeholder='Type brand or name to search your products...'
+              />
+              {itemResults.length > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--bg3)',
+                    border: '0.5px solid var(--gold-20)',
+                    borderRadius: 6,
+                    zIndex: 10,
+                    maxHeight: 200,
+                    overflowY: 'auto',
+                    marginTop: 2
+                  }}
+                >
+                  {itemResults.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => addItem(item)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%',
+                        padding: '7px 12px',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: '0.5px solid var(--w06)',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 8,
+                            padding: '1px 5px',
+                            borderRadius: 2,
+                            background:
+                              item.type === 'niche'
+                                ? 'var(--gold-12)'
+                                : item.type === 'designer'
+                                  ? 'rgba(100,130,200,0.15)'
+                                  : 'var(--w08)',
+                            color:
+                              item.type === 'niche'
+                                ? 'var(--gold)'
+                                : item.type === 'designer'
+                                  ? 'rgba(140,170,255,0.8)'
+                                  : 'var(--w50)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em'
+                          }}
+                        >
+                          {item.type === 'niche'
+                            ? 'Niche'
+                            : item.type === 'designer'
+                              ? 'Designer'
+                              : 'ME'}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--w85)' }}>
+                          {item.brand} {item.name}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--w40)' }}>
+                          {item.size}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--gold)',
+                          fontWeight: 600
+                        }}
+                      >
+                        ₹{item.price}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Items list */}
+            {form.items.length > 0 && (
+              <div
+                style={{
+                  background: 'var(--w04)',
+                  border: '0.5px solid var(--w08)',
+                  borderRadius: 6,
+                  marginBottom: 16,
+                  overflow: 'hidden'
+                }}
+              >
+                {form.items.map((it, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'auto 1fr 70px 80px auto',
+                      gap: 8,
+                      padding: '8px 10px',
+                      borderBottom:
+                        idx < form.items.length - 1
+                          ? '0.5px solid var(--w06)'
+                          : 'none',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 9,
+                        padding: '1px 5px',
+                        borderRadius: 2,
+                        background:
+                          it.type === 'niche'
+                            ? 'var(--gold-12)'
+                            : it.type === 'designer'
+                              ? 'rgba(100,130,200,0.15)'
+                              : 'var(--w08)',
+                        color:
+                          it.type === 'niche'
+                            ? 'var(--gold)'
+                            : it.type === 'designer'
+                              ? 'rgba(140,170,255,0.8)'
+                              : 'var(--w50)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em'
+                      }}
+                    >
+                      {it.type === 'niche'
+                        ? 'N'
+                        : it.type === 'designer'
+                          ? 'D'
+                          : 'ME'}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--w85)' }}>
+                      {it.brand} {it.name}{' '}
+                      <span style={{ color: 'var(--w40)' }}>{it.size}</span>
+                    </span>
+                    <select
+                      value={it.size}
+                      onChange={(e) => updateItem(idx, 'size', e.target.value)}
+                      style={{ ...S.inp, padding: '4px 6px', fontSize: 11 }}
+                    >
+                      {['5ml', '10ml', '20ml', '30ml'].map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                    <input
+                      type='number'
+                      value={it.price}
+                      onChange={(e) =>
+                        updateItem(idx, 'price', Number(e.target.value))
+                      }
+                      style={{
+                        ...S.inp,
+                        padding: '4px 8px',
+                        fontSize: 12,
+                        textAlign: 'right'
+                      }}
+                    />
+                    <button
+                      onClick={() => removeItem(idx)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--red)',
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        padding: '0 4px'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderTop: '0.5px solid var(--w08)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 11
+                  }}
+                >
+                  <span style={{ color: 'var(--w40)' }}>
+                    Original: ₹{subtotal(form.items).toLocaleString('en-IN')}
+                  </span>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}>
+                    After {form.discount_pct}% off: ₹
+                    {discounted(form.items, form.discount_pct).toLocaleString(
+                      'en-IN'
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {(!form.label || form.items.length === 0) && (
+              <div
+                style={{ fontSize: 11, color: 'var(--w30)', marginBottom: 12 }}
+              >
+                {form.items.length === 0
+                  ? '↑ Search and add at least one item'
+                  : '↑ Add a combo name to save'}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={save}
+                disabled={saving || !form.label || form.items.length === 0}
+                style={{
+                  ...S.btn,
+                  background: 'var(--gold)',
+                  color: '#fff',
+                  padding: '11px 0',
+                  fontSize: 13,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  flex: 1,
+                  opacity: !form.label || form.items.length === 0 ? 0.5 : 1
+                }}
+              >
+                {saving
+                  ? 'Saving...'
+                  : editCombo
+                    ? 'Save Changes'
+                    : 'Create Combo'}
+              </button>
+              <button
+                onClick={close}
+                style={{
+                  ...S.btn,
+                  background: 'var(--w06)',
+                  border: '0.5px solid var(--w12)',
+                  color: 'var(--w60)',
+                  padding: '11px 20px',
+                  fontSize: 13
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 20
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 16,
+              color: 'var(--w90)',
+              fontFamily: 'var(--ff-serif)'
+            }}
+          >
+            Combo Deals
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--w35)', marginTop: 2 }}>
+            Items are pulled from your actual products — prices stay accurate
+          </div>
+        </div>
+        <button
+          onClick={openNew}
+          style={{
+            ...S.btn,
+            background: 'var(--gold)',
+            color: '#fff',
+            padding: '8px 18px',
+            fontSize: 12,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }}
+        >
+          + New Combo
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {combos.map((combo) => {
+            const orig = subtotal(combo.items || [])
+            const disc = discounted(combo.items || [], combo.discount_pct)
+            return (
+              <div
+                key={combo.id}
+                style={{
+                  ...S.card,
+                  opacity: combo.active ? 1 : 0.5,
+                  border: `0.5px solid ${combo.active ? 'var(--gold-15)' : 'var(--w08)'}`
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: 10
+                  }}
+                >
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                  >
+                    <span style={{ fontSize: 22 }}>{combo.emoji}</span>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          color: 'var(--w90)',
+                          fontFamily: 'var(--ff-serif)'
+                        }}
+                      >
+                        {combo.label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--w35)',
+                          marginTop: 2
+                        }}
+                      >
+                        {combo.tagline}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{ display: 'flex', gap: 6, alignItems: 'center' }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: combo.active ? 'var(--green-txt)' : 'var(--w30)',
+                        padding: '2px 8px',
+                        border: `0.5px solid ${combo.active ? 'var(--green-br)' : 'var(--w10)'}`,
+                        borderRadius: 3
+                      }}
+                    >
+                      {combo.active ? 'Live' : 'Hidden'}
+                    </span>
+                    <button
+                      onClick={() => toggleActive(combo)}
+                      style={{
+                        ...S.btn,
+                        fontSize: 10,
+                        padding: '3px 8px',
+                        background: 'var(--w06)',
+                        border: '0.5px solid var(--w12)',
+                        color: 'var(--w60)'
+                      }}
+                    >
+                      {combo.active ? 'Hide' : 'Show'}
+                    </button>
+                    <button
+                      onClick={() => openEdit(combo)}
+                      style={{
+                        ...S.btn,
+                        fontSize: 10,
+                        padding: '3px 10px',
+                        background: 'var(--gold-08)',
+                        border: '0.5px solid var(--gold-20)',
+                        color: 'var(--gold)'
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteCombo(combo.id)}
+                      style={{
+                        ...S.btn,
+                        fontSize: 10,
+                        padding: '3px 8px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'rgba(220,80,80,0.5)'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                    marginBottom: 10
+                  }}
+                >
+                  {(combo.items || []).map((it, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--w50)',
+                        background: 'var(--w04)',
+                        border: '0.5px solid var(--w08)',
+                        borderRadius: 3,
+                        padding: '3px 8px'
+                      }}
+                    >
+                      {it.brand} {it.name} {it.size} · ₹{it.price}
+                    </span>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
+                  <span style={{ color: 'var(--w35)' }}>
+                    Original ₹{orig.toLocaleString('en-IN')}
+                  </span>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}>
+                    After {combo.discount_pct}% → ₹
+                    {disc.toLocaleString('en-IN')}
+                  </span>
+                  <span style={{ color: 'var(--w30)' }}>
+                    Save ₹{(orig - disc).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+          {combos.length === 0 && (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '4rem 0',
+                color: 'var(--w30)'
+              }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🧴</div>
+              <div style={{ fontSize: 14 }}>
+                No combos yet. Create one above.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PricingTab() {
   const [paid, setPaid] = useState('')
   const [ml, setMl] = useState('')
@@ -4096,7 +4907,7 @@ function PricingTab() {
               <div
                 style={{
                   fontSize: 11,
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--w40)',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   marginBottom: 4
@@ -4218,7 +5029,7 @@ function DiscountsTab() {
                 fontSize: 9,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.35)',
+                color: 'var(--w35)',
                 marginBottom: 6
               }}
             >
@@ -4227,7 +5038,7 @@ function DiscountsTab() {
             <div
               style={{
                 fontSize: 22,
-                color: 'rgba(255,255,255,0.9)',
+                color: 'var(--w90)',
                 fontWeight: 300,
                 fontFamily: 'var(--ff-serif)'
               }}
@@ -4265,8 +5076,8 @@ function DiscountsTab() {
       {showAdd && (
         <div
           style={{
-            background: 'rgba(176,144,96,0.05)',
-            border: '0.5px solid rgba(176,144,96,0.2)',
+            background: 'var(--gold-05)',
+            border: '0.5px solid var(--gold-20)',
             borderRadius: 8,
             padding: '1.25rem',
             marginBottom: 20
@@ -4335,9 +5146,7 @@ function DiscountsTab() {
             <div>
               <label style={S.lbl}>
                 Min Order (₹){' '}
-                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  optional
-                </span>
+                <span style={{ color: 'var(--w25)' }}>optional</span>
               </label>
               <input
                 style={S.inp}
@@ -4349,10 +5158,7 @@ function DiscountsTab() {
             </div>
             <div>
               <label style={S.lbl}>
-                Max Uses{' '}
-                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  optional
-                </span>
+                Max Uses <span style={{ color: 'var(--w25)' }}>optional</span>
               </label>
               <input
                 style={S.inp}
@@ -4364,10 +5170,7 @@ function DiscountsTab() {
             </div>
             <div>
               <label style={S.lbl}>
-                Expires{' '}
-                <span style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  optional
-                </span>
+                Expires <span style={{ color: 'var(--w25)' }}>optional</span>
               </label>
               <input
                 style={{ ...S.inp, colorScheme: 'dark' }}
@@ -4379,7 +5182,7 @@ function DiscountsTab() {
             </div>
           </div>
           {createError && (
-            <div style={{ fontSize: 12, color: '#e05a5a', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>
               {createError}
             </div>
           )}
@@ -4402,9 +5205,7 @@ function DiscountsTab() {
 
       {/* Codes list */}
       {loading ? (
-        <div style={{ color: 'rgba(255,255,255,0.3)', padding: '2rem' }}>
-          Loading...
-        </div>
+        <div style={{ color: 'var(--w30)', padding: '2rem' }}>Loading...</div>
       ) : codes.length === 0 ? (
         <div
           style={{ textAlign: 'center', padding: '3rem', color: 'var(--t3)' }}
@@ -4421,7 +5222,7 @@ function DiscountsTab() {
               ? '#555'
               : expired || maxed
                 ? '#dc5050'
-                : '#4caf7d'
+                : 'var(--green-txt)'
             const statusLabel = !dc.active
               ? 'Inactive'
               : expired
@@ -4478,7 +5279,7 @@ function DiscountsTab() {
                   <div
                     style={{
                       fontSize: 12,
-                      color: 'rgba(255,255,255,0.5)',
+                      color: 'var(--w50)',
                       display: 'flex',
                       gap: 16,
                       flexWrap: 'wrap'
@@ -4486,7 +5287,7 @@ function DiscountsTab() {
                   >
                     <span
                       style={{
-                        color: 'rgba(255,255,255,0.8)',
+                        color: 'var(--w80)',
                         fontWeight: 500
                       }}
                     >
@@ -4517,8 +5318,8 @@ function DiscountsTab() {
                       background: dc.active
                         ? 'rgba(220,80,80,0.1)'
                         : 'rgba(76,175,125,0.1)',
-                      color: dc.active ? '#dc5050' : '#4caf7d',
-                      border: `0.5px solid ${dc.active ? 'rgba(220,80,80,0.2)' : 'rgba(76,175,125,0.2)'}`
+                      color: dc.active ? '#dc5050' : 'var(--green-txt)',
+                      border: `0.5px solid ${dc.active ? 'var(--red-br)' : 'rgba(76,175,125,0.2)'}`
                     }}
                   >
                     {dc.active ? 'Disable' : 'Enable'}
@@ -4531,7 +5332,7 @@ function DiscountsTab() {
                       padding: '4px 8px',
                       background: 'rgba(220,80,80,0.1)',
                       color: '#dc5050',
-                      border: '0.5px solid rgba(220,80,80,0.2)'
+                      border: '0.5px solid var(--red-br)'
                     }}
                   >
                     ✕
@@ -4697,8 +5498,8 @@ export default function AdminPage() {
       >
         <div
           style={{
-            background: '#0e0c0a',
-            border: '0.5px solid rgba(176,144,96,0.2)',
+            background: 'var(--bg2)',
+            border: '0.5px solid var(--gold-20)',
             borderRadius: 10,
             padding: '2rem',
             width: 340
@@ -4733,7 +5534,7 @@ export default function AdminPage() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: '#e05a5a',
+                    color: 'var(--red)',
                     marginBottom: 10,
                     textAlign: 'center'
                   }}
@@ -4785,7 +5586,7 @@ export default function AdminPage() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: '#e05a5a',
+                    color: 'var(--red)',
                     marginBottom: 10,
                     textAlign: 'center'
                   }}
@@ -4800,8 +5601,7 @@ export default function AdminPage() {
                   ...S.btn,
                   width: '100%',
                   padding: '12px',
-                  background:
-                    otp.length < 6 ? 'rgba(176,144,96,0.4)' : '#b09060',
+                  background: otp.length < 6 ? 'var(--gold-40)' : '#b09060',
                   color: '#fff',
                   fontSize: 13,
                   letterSpacing: '0.1em',
@@ -4837,8 +5637,8 @@ export default function AdminPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <div
         style={{
-          background: '#0e0c0a',
-          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg2)',
+          borderBottom: '0.5px solid var(--w06)',
           padding: '1rem 2rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -4863,10 +5663,10 @@ export default function AdminPage() {
             style={{
               ...S.btn,
               fontSize: 11,
-              color: 'rgba(255,255,255,0.4)',
-              background: 'rgba(255,255,255,0.04)',
+              color: 'var(--w40)',
+              background: 'var(--bg3)',
               padding: '5px 12px',
-              border: '0.5px solid rgba(255,255,255,0.1)'
+              border: '0.5px solid var(--w10)'
             }}
           >
             Sign out
@@ -4887,6 +5687,7 @@ export default function AdminPage() {
             ['orders', 'Orders'],
             ['products', 'Products'],
             ['partials', 'Partials'],
+            ['combos', 'Combos'],
             ['stock', 'Stock'],
             ['pricing', 'Pricing'],
             ['discounts', 'Discounts']
@@ -4900,7 +5701,7 @@ export default function AdminPage() {
                 borderBottom:
                   tab === id ? '2px solid #b09060' : '2px solid transparent',
                 borderRadius: 0,
-                color: tab === id ? '#b09060' : 'rgba(255,255,255,0.4)',
+                color: tab === id ? '#b09060' : 'var(--w40)',
                 padding: '10px 18px',
                 fontSize: 11,
                 letterSpacing: '0.1em',
@@ -4915,6 +5716,7 @@ export default function AdminPage() {
         {tab === 'orders' && <OrdersTab />}
         {tab === 'products' && <ProductsTab />}
         {tab === 'partials' && <PartialsTab />}
+        {tab === 'combos' && <CombosTab />}
         {tab === 'stock' && <StockTab />}
         {tab === 'pricing' && <PricingTab />}
         {tab === 'discounts' && <DiscountsTab />}

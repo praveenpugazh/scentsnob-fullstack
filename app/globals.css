@@ -8,24 +8,23 @@
   padding: 0;
 }
 
-/* ── DARK THEME (default) ── */
+/* ─── DARK THEME (default) ──────────────────────────────────────── */
 :root {
   --ff-serif: 'Playfair Display', serif;
   --ff-sans: 'Jost', sans-serif;
 
-  /* Backgrounds */
+  /* Core backgrounds */
   --bg: #0a0908;
   --bg2: #100e0c;
   --bg3: #141210;
   --bg4: #1a1714;
 
-  /* Gold accent */
+  /* Gold */
   --gold: #b09060;
   --gold-dim: rgba(176, 144, 96, 0.35);
   --gold-04: rgba(176, 144, 96, 0.04);
   --gold-05: rgba(176, 144, 96, 0.05);
   --gold-06: rgba(176, 144, 96, 0.06);
-  --gold-07: rgba(176, 144, 96, 0.07);
   --gold-08: rgba(176, 144, 96, 0.08);
   --gold-10: rgba(176, 144, 96, 0.1);
   --gold-12: rgba(176, 144, 96, 0.12);
@@ -39,12 +38,12 @@
   --gold-50: rgba(176, 144, 96, 0.5);
   --gold-95: rgba(176, 144, 96, 0.95);
 
-  /* Text — white on dark */
+  /* Text */
   --t1: rgba(255, 255, 255, 0.92);
   --t2: rgba(255, 255, 255, 0.6);
   --t3: rgba(255, 255, 255, 0.35);
 
-  /* White alphas (borders, surfaces, overlays) */
+  /* White-alpha tokens — surfaces, borders, overlays (dark mode = white alphas) */
   --w02: rgba(255, 255, 255, 0.02);
   --w03: rgba(255, 255, 255, 0.03);
   --w04: rgba(255, 255, 255, 0.04);
@@ -74,12 +73,12 @@
   --w92: rgba(255, 255, 255, 0.92);
   --w95: rgba(255, 255, 255, 0.95);
 
-  /* Semantic aliases */
-  --border: var(--w08);
-  --border-soft: var(--w06);
-  --surface: var(--w04);
-  --surface2: var(--w02);
-  --overlay: rgba(10, 9, 8, 0.85);
+  /* Semantic shortcuts */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface2: rgba(255, 255, 255, 0.02);
+  --overlay: rgba(10, 9, 8, 0.88);
 
   /* Status */
   --green: #25d366;
@@ -91,51 +90,61 @@
   --green-txt: #4caf7d;
 }
 
-/* ── LIGHT THEME ── */
+/* ─── LIGHT THEME ────────────────────────────────────────────────── */
 [data-theme='light'] {
+  /* Warm parchment backgrounds */
   --bg: #f5f0ea;
   --bg2: #ede6dc;
   --bg3: #e5ddd2;
   --bg4: #ddd4c6;
 
-  --t1: rgba(30, 22, 12, 0.92);
-  --t2: rgba(30, 22, 12, 0.6);
-  --t3: rgba(30, 22, 12, 0.4);
+  /* Text — dark ink on parchment */
+  --t1: rgba(28, 20, 10, 0.92);
+  --t2: rgba(28, 20, 10, 0.6);
+  --t3: rgba(28, 20, 10, 0.4);
 
-  /* In light mode the "white alpha" vars become dark alphas */
-  --w02: rgba(30, 22, 12, 0.02);
-  --w03: rgba(30, 22, 12, 0.03);
-  --w04: rgba(30, 22, 12, 0.04);
-  --w05: rgba(30, 22, 12, 0.05);
-  --w06: rgba(30, 22, 12, 0.06);
-  --w07: rgba(30, 22, 12, 0.07);
-  --w08: rgba(30, 22, 12, 0.08);
-  --w10: rgba(30, 22, 12, 0.1);
-  --w12: rgba(30, 22, 12, 0.12);
-  --w15: rgba(30, 22, 12, 0.15);
-  --w18: rgba(30, 22, 12, 0.18);
-  --w20: rgba(30, 22, 12, 0.2);
-  --w25: rgba(30, 22, 12, 0.25);
-  --w30: rgba(30, 22, 12, 0.3);
-  --w35: rgba(30, 22, 12, 0.35);
-  --w40: rgba(30, 22, 12, 0.4);
-  --w45: rgba(30, 22, 12, 0.45);
-  --w50: rgba(30, 22, 12, 0.5);
-  --w55: rgba(30, 22, 12, 0.55);
-  --w60: rgba(30, 22, 12, 0.6);
-  --w65: rgba(30, 22, 12, 0.65);
-  --w70: rgba(30, 22, 12, 0.7);
-  --w75: rgba(30, 22, 12, 0.75);
-  --w80: rgba(30, 22, 12, 0.8);
-  --w85: rgba(30, 22, 12, 0.85);
-  --w90: rgba(30, 22, 12, 0.9);
-  --w92: rgba(30, 22, 12, 0.92);
-  --w95: rgba(30, 22, 12, 0.95);
+  /* In light mode, --w* tokens become dark-ink alphas
+     so borders/surfaces/overlays contrast against the light bg */
+  --w02: rgba(28, 20, 10, 0.02);
+  --w03: rgba(28, 20, 10, 0.03);
+  --w04: rgba(28, 20, 10, 0.04);
+  --w05: rgba(28, 20, 10, 0.05);
+  --w06: rgba(28, 20, 10, 0.06);
+  --w07: rgba(28, 20, 10, 0.07);
+  --w08: rgba(28, 20, 10, 0.08);
+  --w10: rgba(28, 20, 10, 0.1);
+  --w12: rgba(28, 20, 10, 0.12);
+  --w15: rgba(28, 20, 10, 0.15);
+  --w18: rgba(28, 20, 10, 0.18);
+  --w20: rgba(28, 20, 10, 0.2);
+  --w25: rgba(28, 20, 10, 0.25);
+  --w30: rgba(28, 20, 10, 0.3);
+  --w35: rgba(28, 20, 10, 0.35);
+  --w40: rgba(28, 20, 10, 0.4);
+  --w45: rgba(28, 20, 10, 0.45);
+  --w50: rgba(28, 20, 10, 0.5);
+  --w55: rgba(28, 20, 10, 0.55);
+  --w60: rgba(28, 20, 10, 0.6);
+  --w65: rgba(28, 20, 10, 0.65);
+  --w70: rgba(28, 20, 10, 0.7);
+  --w75: rgba(28, 20, 10, 0.75);
+  --w80: rgba(28, 20, 10, 0.8);
+  --w85: rgba(28, 20, 10, 0.85);
+  --w90: rgba(28, 20, 10, 0.9);
+  --w92: rgba(28, 20, 10, 0.92);
+  --w95: rgba(28, 20, 10, 0.95);
 
-  --gold-dim: rgba(176, 144, 96, 0.25);
+  --border: rgba(28, 20, 10, 0.12);
+  --border-soft: rgba(28, 20, 10, 0.08);
+  --surface: rgba(28, 20, 10, 0.05);
+  --surface2: rgba(28, 20, 10, 0.03);
   --overlay: rgba(245, 240, 234, 0.92);
+
+  /* Gold alphas stay the same — gold works on both themes */
+  --gold-dim: rgba(176, 144, 96, 0.25);
 }
 
+/* ─── BASE ───────────────────────────────────────────────────────── */
 html,
 body {
   background: var(--bg);
@@ -143,8 +152,8 @@ body {
   font-family: var(--ff-sans);
   min-height: 100vh;
   transition:
-    background 0.3s,
-    color 0.3s;
+    background 0.25s ease,
+    color 0.25s ease;
 }
 
 a {
@@ -158,8 +167,30 @@ input,
 textarea,
 select {
   font-family: var(--ff-sans);
+  color: var(--t1);
+  background: var(--w06);
 }
 
+/* Inputs in light mode — use browser's native light rendering */
+[data-theme='light'] input,
+[data-theme='light'] select,
+[data-theme='light'] textarea {
+  color-scheme: light;
+}
+
+/* Select options inherit theme correctly */
+select option {
+  background: var(--bg2);
+  color: var(--t1);
+}
+
+/* Placeholder */
+::placeholder {
+  color: var(--w35);
+  opacity: 1;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -167,10 +198,11 @@ select {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(176, 144, 96, 0.2);
+  background: var(--gold-20);
   border-radius: 2px;
 }
 
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
