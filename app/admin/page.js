@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { calcPrices, formatINR, DEFAULT_MARGIN } from '@/lib/pricing'
 import { createBrowserSupabase } from '@/lib/supabase'
@@ -42,6 +42,58 @@ const S = {
 }
 
 const STATUS_FLOW = ['Pending', 'Paid', 'Shipped', 'Delivered']
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+function Spinner({ size = 16, color = 'var(--gold)' }) {
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        border: `2px solid ${color}33`,
+        borderTopColor: color,
+        borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+        flexShrink: 0,
+        verticalAlign: 'middle'
+      }}
+    />
+  )
+}
+
+// ── SaveToast — small non-blocking feedback strip ─────────────────────────────
+function SaveToast({ msg, type = 'success' }) {
+  if (!msg) return null
+  const bg = type === 'error' ? 'var(--red-bg)' : 'rgba(76,175,125,0.12)'
+  const bdr = type === 'error' ? 'var(--red-br)' : 'var(--green-br)'
+  const col = type === 'error' ? 'var(--red)' : 'var(--green-txt)'
+  const icon = type === 'error' ? '✕' : '✓'
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        right: 24,
+        zIndex: 500,
+        background: bg,
+        border: `0.5px solid ${bdr}`,
+        borderRadius: 8,
+        padding: '10px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 13,
+        color: col,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        animation: 'fadeIn 0.2s ease'
+      }}
+    >
+      <span style={{ fontWeight: 700 }}>{icon}</span> {msg}
+    </div>
+  )
+}
+
 const STATUS_COLORS = {
   Pending: '#b09060',
   Paid: '#4a9eff',
@@ -2192,6 +2244,12 @@ function ProductsTab() {
   const [importing, setImporting] = useState(false)
   const [importDone, setImportDone] = useState(null) // { created, skipped }
   const [dragOver, setDragOver] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }
   const [form, setForm] = useState({
     brand: '',
     name: '',
@@ -2237,6 +2295,7 @@ function ProductsTab() {
 
   const saveProduct = async () => {
     if (!form.brand || !form.name) return
+    setSaving(true)
     const payload = {
       brand: form.brand,
       name: form.name,
@@ -2264,7 +2323,11 @@ function ProductsTab() {
       })
       if (!r.ok) {
         const err = await r.json()
-        alert('Save failed: ' + (err.error?.message || JSON.stringify(err)))
+        setSaving(false)
+        showToast(
+          'Save failed: ' + (err.error?.message || JSON.stringify(err)),
+          'error'
+        )
         return
       }
       const updated = await r.json()
@@ -2273,6 +2336,8 @@ function ProductsTab() {
           p.map((x) => (x.id === currentEditId ? { ...x, ...updated } : x))
         )
       }
+      setSaving(false)
+      showToast(`${form.brand} ${form.name} updated`)
       setEditId(null)
       setShowAdd(false)
       setForm({
@@ -2298,11 +2363,17 @@ function ProductsTab() {
       })
       if (!r.ok) {
         const err = await r.json()
-        alert('Create failed: ' + (err.error?.message || JSON.stringify(err)))
+        setSaving(false)
+        showToast(
+          'Create failed: ' + (err.error?.message || JSON.stringify(err)),
+          'error'
+        )
         return
       }
       const created = await r.json()
       if (created && created.id) setProducts((p) => [created, ...p])
+      setSaving(false)
+      showToast(`${form.brand} ${form.name} added`)
       setShowAdd(false)
       setForm({
         brand: '',
@@ -3584,22 +3655,30 @@ function ProductsTab() {
               </button>
               <button
                 onClick={saveProduct}
+                disabled={saving}
                 style={{
                   ...S.btn,
-                  background: '#b09060',
+                  background: saving ? 'rgba(176,144,96,0.5)' : '#b09060',
                   color: '#fff',
                   padding: '9px 24px',
                   fontSize: 12,
                   letterSpacing: '0.08em',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
                 }}
               >
-                {editId ? 'Save Changes' : 'Add Product'}
+                {saving && <Spinner size={13} color='#fff' />}
+                {saving ? 'Saving...' : editId ? 'Save Changes' : 'Add Product'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <SaveToast msg={toast?.msg} type={toast?.type} />
 
       <div
         style={{
@@ -6953,4 +7032,3 @@ export default function AdminPage() {
     </div>
   )
 }
-
