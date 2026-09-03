@@ -15,17 +15,18 @@ export default function Nav({
   const [user, setUser] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
   const supabase = createBrowserSupabase()
 
-  // Safe wrapper — won't crash if onTabChange not provided (e.g. /about page)
-  const goTab = (id) => {
+  const navigate = (id) => {
     if (typeof onTabChange === 'function') onTabChange(id)
+    setMenuOpen(false)
+    setSearchOpen(false)
+    onSearch('')
   }
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', h)
+    window.addEventListener('scroll', h, { passive: true })
     return () => window.removeEventListener('scroll', h)
   }, [])
 
@@ -39,87 +40,23 @@ export default function Nav({
     return () => subscription.unsubscribe()
   }, [])
 
+  // Lock body scroll when menu open
   useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target))
-        setMenuOpen(false)
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
-    document.addEventListener('mousedown', handler)
-    document.addEventListener('touchstart', handler)
     return () => {
-      document.removeEventListener('mousedown', handler)
-      document.removeEventListener('touchstart', handler)
+      document.body.style.overflow = ''
     }
-  }, [])
+  }, [menuOpen])
 
-  const mobileNavLink = (id, label, emoji = '') => (
-    <button
-      onClick={() => {
-        setMenuOpen(false)
-        setSearchOpen(false)
-        onSearch('')
-        // Small delay so menu closes visually before tab switches
-        setTimeout(() => {
-          if (typeof onTabChange === 'function') onTabChange(id)
-        }, 10)
-      }}
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: 15,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--ff-sans)',
-        padding: '18px 0',
-        width: '100%',
-        textAlign: 'left',
-        color: activeTab === id ? 'var(--gold)' : 'var(--t1)',
-        borderBottom: '0.5px solid var(--w08)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        WebkitTapHighlightColor: 'rgba(176,144,96,0.15)',
-        userSelect: 'none'
-      }}
-    >
-      {emoji && <span style={{ fontSize: 20 }}>{emoji}</span>}
-      {label}
-      {activeTab === id && (
-        <span
-          style={{ marginLeft: 'auto', color: 'var(--gold)', fontSize: 12 }}
-        >
-          ●
-        </span>
-      )}
-    </button>
-  )
-
-  const desktopNavLink = (id, label) => (
-    <button
-      onClick={() => {
-        goTab(id)
-        setSearchOpen(false)
-        onSearch('')
-      }}
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: 11,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--ff-sans)',
-        padding: '4px 0',
-        color: activeTab === id ? 'var(--gold)' : 'rgba(255,255,255,0.5)',
-        borderBottom:
-          activeTab === id ? '1px solid var(--gold)' : '1px solid transparent',
-        transition: 'all .2s'
-      }}
-    >
-      {label}
-    </button>
-  )
+  const NAV_ITEMS = [
+    { id: 'brands', label: 'Brands', emoji: '🏷️' },
+    { id: 'partials', label: 'Partials', emoji: '🧴' },
+    { id: 'about', label: 'About', emoji: 'ℹ️' }
+  ]
 
   return (
     <>
@@ -147,12 +84,7 @@ export default function Nav({
         >
           {/* Logo */}
           <button
-            onClick={() => {
-              goTab('home')
-              setSearchOpen(false)
-              onSearch('')
-              setMenuOpen(false)
-            }}
+            onClick={() => navigate('home')}
             style={{
               background: 'none',
               border: 'none',
@@ -175,9 +107,31 @@ export default function Nav({
             className='desktop-nav'
             style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1 }}
           >
-            {desktopNavLink('brands', 'Brands')}
-            {desktopNavLink('partials', 'Partials')}
-            {desktopNavLink('about', 'About')}
+            {NAV_ITEMS.map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => navigate(id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  fontFamily: 'var(--ff-sans)',
+                  padding: '4px 0',
+                  color:
+                    activeTab === id ? 'var(--gold)' : 'rgba(255,255,255,0.5)',
+                  borderBottom:
+                    activeTab === id
+                      ? '1px solid var(--gold)'
+                      : '1px solid transparent',
+                  transition: 'all .2s'
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Right side */}
@@ -345,34 +299,34 @@ export default function Nav({
               )}
             </button>
 
-            {/* Hamburger — mobile only */}
+            {/* Hamburger */}
             <button
-              ref={menuRef}
               onClick={() => setMenuOpen((o) => !o)}
               className='hamburger'
               style={{
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                padding: '4px',
+                padding: '8px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 4,
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 32,
-                height: 32
+                width: 40,
+                height: 40
               }}
             >
               <span
                 style={{
                   display: 'block',
-                  width: 20,
-                  height: 1.5,
+                  width: 22,
+                  height: 2,
                   background: menuOpen
                     ? 'var(--gold)'
-                    : 'rgba(255,255,255,0.7)',
-                  transition: 'all .2s',
+                    : 'rgba(255,255,255,0.8)',
+                  borderRadius: 2,
+                  transition: 'all .25s',
                   transform: menuOpen
                     ? 'rotate(45deg) translate(4px, 4px)'
                     : 'none'
@@ -381,23 +335,25 @@ export default function Nav({
               <span
                 style={{
                   display: 'block',
-                  width: 20,
-                  height: 1.5,
+                  width: 22,
+                  height: 2,
                   background: menuOpen
                     ? 'transparent'
-                    : 'rgba(255,255,255,0.7)',
-                  transition: 'all .2s'
+                    : 'rgba(255,255,255,0.8)',
+                  borderRadius: 2,
+                  transition: 'all .25s'
                 }}
               />
               <span
                 style={{
                   display: 'block',
-                  width: 20,
-                  height: 1.5,
+                  width: 22,
+                  height: 2,
                   background: menuOpen
                     ? 'var(--gold)'
-                    : 'rgba(255,255,255,0.7)',
-                  transition: 'all .2s',
+                    : 'rgba(255,255,255,0.8)',
+                  borderRadius: 2,
+                  transition: 'all .25s',
                   transform: menuOpen
                     ? 'rotate(-45deg) translate(4px, -4px)'
                     : 'none'
@@ -408,38 +364,118 @@ export default function Nav({
         </div>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile drawer — completely separate from nav, no event propagation issues */}
       {menuOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 200,
-            background: 'rgba(0,0,0,0.5)'
-          }}
-          onClick={() => setMenuOpen(false)}
-        >
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
+          {/* Backdrop — tapping this closes menu */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(0,0,0,0.6)'
+            }}
+            onClick={() => setMenuOpen(false)}
+          />
+
+          {/* Drawer panel — slides in from top */}
           <div
             style={{
               position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
-              background: 'var(--bg)',
-              padding: '0 4vw',
-              paddingTop: 70,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-              borderBottom: '1px solid var(--gold-15)'
+              background: '#0a0908',
+              borderBottom: '1px solid rgba(176,144,96,0.2)',
+              paddingBottom: 8,
+              zIndex: 1
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            {mobileNavLink('brands', 'Brands', '🏷️')}
-            {mobileNavLink('partials', 'Partials', '🧴')}
-            {mobileNavLink('about', 'About', 'ℹ️')}
-            <div>
+            {/* Nav header row */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 4vw',
+                height: 56,
+                borderBottom: '0.5px solid rgba(255,255,255,0.06)'
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--ff-sans)',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.9)'
+                }}
+              >
+                Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
+              </span>
+              <button
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: 28,
+                  lineHeight: 1,
+                  padding: '4px 8px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Nav items — large tap targets */}
+            <div style={{ padding: '8px 4vw 0' }}>
+              {NAV_ITEMS.map(({ id, label, emoji }) => (
+                <button
+                  key={id}
+                  onClick={() => navigate(id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    width: '100%',
+                    padding: '16px 0',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+                    cursor: 'pointer',
+                    color:
+                      activeTab === id ? '#b09060' : 'rgba(255,255,255,0.85)',
+                    fontFamily: 'var(--ff-sans)',
+                    fontSize: 15,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    textAlign: 'left',
+                    WebkitTapHighlightColor: 'rgba(176,144,96,0.15)'
+                  }}
+                >
+                  <span
+                    style={{ fontSize: 20, width: 28, textAlign: 'center' }}
+                  >
+                    {emoji}
+                  </span>
+                  {label}
+                  {activeTab === id && (
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        color: '#b09060',
+                        fontSize: 18
+                      }}
+                    >
+                      ›
+                    </span>
+                  )}
+                </button>
+              ))}
+
+              {/* Account / Sign in */}
               {user ? (
                 <Link
                   href='/account'
@@ -447,17 +483,24 @@ export default function Nav({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    padding: '12px 0',
-                    color: 'rgba(255,255,255,0.65)',
+                    gap: 14,
+                    width: '100%',
+                    padding: '16px 0',
+                    color: 'rgba(255,255,255,0.85)',
                     textDecoration: 'none',
-                    fontSize: 13,
+                    fontFamily: 'var(--ff-sans)',
+                    fontSize: 15,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    fontFamily: 'var(--ff-sans)'
+                    borderBottom: '0.5px solid rgba(255,255,255,0.07)'
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>👤</span> My Account
+                  <span
+                    style={{ fontSize: 20, width: 28, textAlign: 'center' }}
+                  >
+                    👤
+                  </span>{' '}
+                  My Account
                 </Link>
               ) : (
                 <Link
@@ -466,17 +509,24 @@ export default function Nav({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    padding: '12px 0',
-                    color: 'rgba(255,255,255,0.65)',
+                    gap: 14,
+                    width: '100%',
+                    padding: '16px 0',
+                    color: 'rgba(255,255,255,0.85)',
                     textDecoration: 'none',
-                    fontSize: 13,
+                    fontFamily: 'var(--ff-sans)',
+                    fontSize: 15,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    fontFamily: 'var(--ff-sans)'
+                    borderBottom: '0.5px solid rgba(255,255,255,0.07)'
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>🔑</span> Sign In
+                  <span
+                    style={{ fontSize: 20, width: 28, textAlign: 'center' }}
+                  >
+                    🔑
+                  </span>{' '}
+                  Sign In
                 </Link>
               )}
             </div>
