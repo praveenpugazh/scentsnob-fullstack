@@ -122,6 +122,14 @@ export default function CheckoutPage() {
   const grandTotal = subtotal + shipping
   const totalQty = items.reduce((a, [, b]) => a + b.qty, 0)
 
+  const discountAmount = couponApplied?.discount_amount || 0
+  const finalTotal = Math.max(0, grandTotal - discountAmount)
+
+  // Razorpay charges 2% + 18% GST = 2.36% effective
+  const RAZORPAY_FEE_PCT = 0.0236
+  const razorpayFee = Math.round(finalTotal * RAZORPAY_FEE_PCT)
+  const razorpayTotal = finalTotal + razorpayFee
+
   // Validation
   const validate = () => {
     const e = {}
@@ -161,8 +169,31 @@ export default function CheckoutPage() {
     setCouponError('')
   }
 
-  const discountAmount = couponApplied?.discount_amount || 0
-  const finalTotal = Math.max(0, grandTotal - discountAmount)
+  const handleWhatsApp = () => {
+    const fullAddress = [line1, line2, line3, pincode]
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(', ')
+    const lines = items.map(([, item]) => {
+      const label = item.isPartial
+        ? `${item.brand} ${item.name} (Partial)`
+        : `${item.brand} ${item.name} ${item.size}`
+      return `• ${label} × ${item.qty} — ${formatINR(item.price * item.qty)}`
+    })
+    let msg = `Hi Scent Snob! I'd like to place an order 🛒\n\n`
+    msg += lines.join('\n')
+    msg += `\n\nSubtotal: ${formatINR(subtotal)}`
+    msg += `\nShipping: ${shipping === 0 ? 'Free' : formatINR(shipping)}`
+    if (discountAmount) msg += `\nDiscount: − ${formatINR(discountAmount)}`
+    msg += `\n*Total: ${formatINR(finalTotal)}*`
+    msg += `\n\nName: ${name.trim()}`
+    msg += `\nPhone: ${phone.trim()}`
+    if (fullAddress) msg += `\nAddress: ${fullAddress}`
+    window.open(
+      `https://wa.me/918754519509?text=${encodeURIComponent(msg)}`,
+      '_blank'
+    )
+  }
 
   const handlePay = async () => {
     const e = validate()
@@ -187,7 +218,7 @@ export default function CheckoutPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: grandTotal,
+        amount: razorpayTotal,
         receipt: `rcpt_${Date.now()}`
       })
     })
@@ -234,7 +265,7 @@ export default function CheckoutPage() {
             items: items.map(([, v]) => v),
             subtotal,
             shipping,
-            total: finalTotal,
+            total: razorpayTotal,
             discount_code: couponApplied?.code || null,
             discount_amount: discountAmount,
             user_id: userId || undefined
@@ -953,20 +984,108 @@ export default function CheckoutPage() {
                   {submitErr}
                 </div>
               )}
+
+              {/* WhatsApp — primary recommended option */}
+              <div style={{ marginBottom: 10 }}>
+                <button
+                  onClick={handleWhatsApp}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    borderRadius: 6,
+                    background: '#25D366',
+                    border: 'none',
+                    color: '#fff',
+                    fontFamily: 'var(--ff-sans)',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    boxShadow: '0 4px 20px rgba(37,211,102,0.25)'
+                  }}
+                >
+                  <svg
+                    width='20'
+                    height='20'
+                    viewBox='0 0 24 24'
+                    fill='currentColor'
+                  >
+                    <path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' />
+                  </svg>
+                  Order via WhatsApp · {formatINR(finalTotal)}
+                </button>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    fontSize: 11,
+                    color: '#4caf7d',
+                    marginTop: 6,
+                    fontWeight: 500
+                  }}
+                >
+                  ✓ No payment gateway fee · Save {formatINR(razorpayFee)} · Pay
+                  via GPay / PhonePe / UPI
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  margin: '14px 0'
+                }}
+              >
+                <div
+                  style={{
+                    flex: 1,
+                    height: '0.5px',
+                    background: 'rgba(255,255,255,0.08)'
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: 'var(--t3)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  or pay online (fee applies)
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: '0.5px',
+                    background: 'rgba(255,255,255,0.08)'
+                  }}
+                />
+              </div>
+
               <button
                 onClick={handlePay}
                 disabled={paying}
                 style={{
                   width: '100%',
-                  padding: '15px',
+                  padding: '13px',
                   borderRadius: 6,
-                  background: paying ? 'rgba(176,144,96,0.5)' : '#b09060',
-                  border: 'none',
-                  color: '#fff',
+                  background: paying
+                    ? 'rgba(176,144,96,0.4)'
+                    : 'rgba(176,144,96,0.15)',
+                  border: '0.5px solid rgba(176,144,96,0.3)',
+                  color: paying
+                    ? 'rgba(255,255,255,0.4)'
+                    : 'rgba(255,255,255,0.7)',
                   fontFamily: 'var(--ff-sans)',
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: 500,
-                  letterSpacing: '0.12em',
+                  letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   cursor: paying ? 'not-allowed' : 'pointer',
                   transition: 'all .2s'
@@ -974,18 +1093,19 @@ export default function CheckoutPage() {
               >
                 {paying
                   ? 'Opening Payment Gateway...'
-                  : `Pay Securely · ${formatINR(finalTotal)}`}
+                  : `Pay Securely · ${formatINR(razorpayTotal)}`}
               </button>
               <p
                 style={{
-                  fontSize: 11,
+                  fontSize: 10,
                   color: 'var(--t3)',
                   textAlign: 'center',
-                  marginTop: 10,
+                  marginTop: 8,
                   lineHeight: 1.6
                 }}
               >
-                🔒 Secured by Razorpay · UPI · Cards · Netbanking
+                🔒 Secured by Razorpay · UPI · Cards · Netbanking · +
+                {formatINR(razorpayFee)} gateway fee included
               </p>
             </div>
           </div>
@@ -1176,6 +1296,8 @@ export default function CheckoutPage() {
                     <span>− {formatINR(discountAmount)}</span>
                   </div>
                 )}
+
+                {/* WhatsApp total */}
                 <div
                   style={{
                     display: 'flex',
@@ -1188,22 +1310,51 @@ export default function CheckoutPage() {
                   }}
                 >
                   <span>Total</span>
-                  <div style={{ textAlign: 'right' }}>
-                    {couponApplied && (
-                      <div
-                        style={{
-                          fontSize: '0.9rem',
-                          color: 'var(--t3)',
-                          textDecoration: 'line-through',
-                          marginBottom: 2
-                        }}
-                      >
-                        {formatINR(grandTotal)}
-                      </div>
-                    )}
-                    <span style={{ color: 'var(--gold)' }}>
-                      {formatINR(finalTotal)}
+                  <span style={{ color: 'var(--gold)' }}>
+                    {formatINR(finalTotal)}
+                  </span>
+                </div>
+
+                {/* Razorpay fee notice */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '10px 12px',
+                    background: 'rgba(176,144,96,0.06)',
+                    border: '0.5px solid rgba(176,144,96,0.15)',
+                    borderRadius: 6
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 11,
+                      color: 'var(--t3)',
+                      marginBottom: 4
+                    }}
+                  >
+                    <span>💳 Payment gateway fee (2% + GST)</span>
+                    <span style={{ color: '#dc5050' }}>
+                      + {formatINR(razorpayFee)}
                     </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 12,
+                      color: 'var(--t2)'
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>If paying online</span>
+                    <span style={{ fontWeight: 700, color: 'var(--t1)' }}>
+                      {formatINR(razorpayTotal)}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#4caf7d' }}>
+                    💬 Order via WhatsApp + GPay to save{' '}
+                    {formatINR(razorpayFee)}
                   </div>
                 </div>
               </div>
@@ -1265,4 +1416,3 @@ export default function CheckoutPage() {
     </div>
   )
 }
-
