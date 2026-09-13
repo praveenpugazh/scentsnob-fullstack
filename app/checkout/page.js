@@ -136,11 +136,28 @@ export default function CheckoutPage() {
 
   const touch = (field) => {
     setTouched((t) => ({ ...t, [field]: true }))
-    const e = validate()
-    setErrors((prev) => ({ ...prev, [field]: e[field] || '' }))
+    // Re-run validate after state update to show field error on blur
+    setErrors((prev) => {
+      const e = {
+        ...prev,
+        name: !name.trim() ? 'Name is required' : '',
+        phone: !phone.trim()
+          ? 'Phone number is required'
+          : phone.replace(/\D/g, '').length !== 10
+            ? 'Must be exactly 10 digits'
+            : '',
+        line1: !line1.trim() ? 'House / flat number and street required' : '',
+        line2: !line2.trim() ? 'Area / locality required' : '',
+        line3: !line3.trim() ? 'City and state required' : '',
+        pincode: !pincode.trim()
+          ? 'PIN code required'
+          : !/^\d{6}$/.test(pincode.trim())
+            ? 'Must be a 6-digit PIN code'
+            : ''
+      }
+      return { ...prev, [field]: e[field] }
+    })
   }
-
-  const isFormValid = Object.keys(validate()).length === 0
 
   const validate = () => {
     const e = {}
@@ -156,6 +173,8 @@ export default function CheckoutPage() {
       e.pincode = 'Must be a 6-digit PIN code'
     return e
   }
+
+  const isFormValid = Object.keys(validate()).length === 0
 
   const applyCoupon = async () => {
     if (!coupon.trim()) return
