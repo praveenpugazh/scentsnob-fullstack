@@ -1,8 +1,14 @@
+import {
+  siteName,
+  whatsappNumber,
+  instagram,
+  emailFromName
+} from '@/lib/config'
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import nodemailer from 'nodemailer'
-import { deductMl } from '@/lib/deductMl'
+
 export async function POST(req) {
   try {
     const {
@@ -109,9 +115,6 @@ export async function POST(req) {
       `https://api.whatsapp.com/send?phone=918754519509&text=${encodeURIComponent(waMsg)}`
     ).catch(() => {})
 
-    // Deduct ml from product inventory
-    await deductMl(items)
-
     return NextResponse.json({ success: true, order_ref: orderRef, order })
   } catch (err) {
     console.error('verify-payment error:', err)
@@ -150,7 +153,7 @@ async function sendOrderConfirmation(order, items) {
     .join('')
 
   await transporter.sendMail({
-    from: `"Scent Snob Decants" <${process.env.GMAIL_USER}>`,
+    from: `emailFromName <${process.env.GMAIL_USER}>`,
     to: customerEmail,
     subject: `Order Confirmed — ${order.order_ref} 🧴`,
     html: `
@@ -245,7 +248,7 @@ async function sendOwnerNotification(order, items) {
     .join('\n')
 
   await transporter.sendMail({
-    from: `"Scent Snob Orders" <${process.env.GMAIL_USER}>`,
+    from: `emailFromName + ' Orders' <${process.env.GMAIL_USER}>`,
     to: 'thescentsnobb@gmail.com',
     subject: `🧴 New Order ${order.order_ref} — ₹${order.total.toLocaleString('en-IN')}`,
     html: `

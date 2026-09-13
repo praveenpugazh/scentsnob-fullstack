@@ -4,9 +4,9 @@ export default function robots() {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/account', '/checkout', '/api/'],
-      },
+        disallow: ['/admin', '/account', '/checkout', '/api/']
+      }
     ],
-    sitemap: 'https://scentsnobdecants.vercel.app/sitemap.xml',
-  };
+    sitemap: `${siteUrl}/sitemap.xml`
+  }
 }

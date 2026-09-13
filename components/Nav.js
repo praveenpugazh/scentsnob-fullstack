@@ -1,4 +1,5 @@
 'use client'
+import { siteNameShort, siteNameAccent } from '@/lib/config'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabase } from '@/lib/supabase'
@@ -99,7 +100,8 @@ export default function Nav({
               padding: 0
             }}
           >
-            Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
+            {siteNameShort}{' '}
+            <span style={{ color: '#b09060' }}>{siteNameAccent}</span>
           </button>
 
           {/* Desktop nav links */}
@@ -411,7 +413,8 @@ export default function Nav({
                   color: 'rgba(255,255,255,0.9)'
                 }}
               >
-                Scent Snob <span style={{ color: '#b09060' }}>Decants</span>
+                {siteNameShort}{' '}
+                <span style={{ color: '#b09060' }}>{siteNameAccent}</span>
               </span>
               <button
                 onClick={() => setMenuOpen(false)}

@@ -1,9 +1,17 @@
+import {
+  siteName,
+  siteUrl,
+  seoTitle,
+  seoDescription,
+  instagram,
+  googleVerification
+} from '@/lib/config'
 import './globals.css'
 
 export const metadata = {
-  metadataBase: new URL('https://scentsnobdecants.vercel.app'),
+  metadataBase: new URL(siteUrl),
   title: {
-    default: 'Scent Snob Decants — Niche Perfume Decants India',
+    default: seoTitle,
     template: '%s | Scent Snob Decants'
   },
   description:
@@ -25,27 +33,25 @@ export const metadata = {
     'cheap perfume samples india',
     'try before you buy perfume india'
   ],
-  authors: [{ name: 'Scent Snob Decants' }],
-  creator: 'Scent Snob Decants',
+  authors: [{ name: siteName }],
+  creator: siteName,
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://scentsnobdecants.vercel.app',
-    siteName: 'Scent Snob Decants',
-    title: 'Scent Snob Decants — Niche Perfume Decants India',
+    url: siteUrl,
+    siteName: siteName,
+    title: seoTitle,
     description:
       'Try 200+ niche, designer & Middle Eastern fragrances in small sizes. Authentic decants from personally sourced bottles. PAN India delivery.',
-    images: [
-      { url: '/hero.jpg', width: 1200, height: 630, alt: 'Scent Snob Decants' }
-    ]
+    images: [{ url: '/hero.jpg', width: 1200, height: 630, alt: siteName }]
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Scent Snob Decants — Niche Perfume Decants India',
+    title: seoTitle,
     description:
       'Try 200+ niche, designer & Middle Eastern fragrances in small sizes. PAN India delivery.',
     images: ['/hero.jpg'],
-    creator: '@the_scent_snob_'
+    creator: '@' + instagram
   },
   robots: {
     index: true,
@@ -57,7 +63,7 @@ export const metadata = {
       'max-snippet': -1
     }
   },
-  alternates: { canonical: 'https://scentsnobdecants.vercel.app' },
+  alternates: { canonical: siteUrl },
   verification: {
     google: 'OF__TsA71H_Dy3SD2HjZ28B1VjR8VVlH6ygRljKz2mY'
   }
@@ -73,10 +79,10 @@ export default function RootLayout({ children }) {
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Store',
-              name: 'Scent Snob Decants',
+              name: siteName,
               description:
                 "India's premium niche perfume decant house. Try 200+ fragrances in small sizes.",
-              url: 'https://scentsnobdecants.vercel.app',
+              url: siteUrl,
               image: 'https://scentsnobdecants.vercel.app/hero.jpg',
               sameAs: ['https://www.instagram.com/the_scent_snob_/'],
               contactPoint: {
@@ -92,7 +98,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body>{children}</body>
     </html>
   )
 }

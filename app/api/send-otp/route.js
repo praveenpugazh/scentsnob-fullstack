@@ -1,3 +1,4 @@
+import { siteName, otpSubject } from '@/lib/config'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
@@ -58,7 +59,7 @@ export async function POST(req) {
     await transporter.sendMail({
       from: `"Scent Snob Decants" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: 'Your Scent Snob login code',
+      subject: otpSubject,
       html: `
         <div style="background:#0a0908;padding:40px 24px;font-family:sans-serif;max-width:480px;margin:0 auto;">
           <h2 style="color:#b09060;font-size:20px;margin:0 0 6px;">Scent Snob Decants</h2>

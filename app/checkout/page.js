@@ -1,4 +1,5 @@
 'use client'
+import { siteNameShort, whatsappNumber } from '@/lib/config'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import LuckyWheel from '@/components/LuckyWheel'
@@ -180,7 +181,7 @@ export default function CheckoutPage() {
         : `${item.brand} ${item.name} ${item.size}`
       return `• ${label} × ${item.qty} — ${formatINR(item.price * item.qty)}`
     })
-    let msg = `Hi Scent Snob! I'd like to place an order 🛒\n\n`
+    let msg = `Hi ${siteNameShort}! I'd like to place an order 🛒\n\n`
     msg += lines.join('\n')
     msg += `\n\nSubtotal: ${formatINR(subtotal)}`
     msg += `\nShipping: ${shipping === 0 ? 'Free' : formatINR(shipping)}`
@@ -734,7 +735,7 @@ export default function CheckoutPage() {
           className='checkout-grid'
         >
           {/* ── LEFT: DELIVERY FORM ── */}
-          <div>
+          <div className='checkout-form-card'>
             <h1
               style={{
                 fontFamily: 'var(--ff-serif)',
@@ -1407,9 +1408,20 @@ export default function CheckoutPage() {
         @media (max-width: 700px) {
           .checkout-grid {
             grid-template-columns: 1fr !important;
+            gap: 20px !important;
+            padding: 1rem 4vw 6rem !important;
+          }
+          /* Form first, summary below on mobile */
+          .checkout-form-card {
+            order: 1;
+            background: var(--bg2);
+            border: 0.5px solid var(--w10);
+            border-radius: 12px;
+            padding: 20px 16px !important;
           }
           .checkout-grid > div:last-child {
-            order: -1;
+            order: 2;
+            position: static !important;
           }
         }
       `}</style>
