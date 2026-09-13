@@ -1,3 +1,4 @@
+import { siteUrl } from '@/lib/config'
 export default function sitemap() {
   const baseUrl = siteUrl
   return [
