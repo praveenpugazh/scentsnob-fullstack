@@ -132,6 +132,16 @@ export default function CheckoutPage() {
   const razorpayTotal = finalTotal + razorpayFee
 
   // Validation
+  const [touched, setTouched] = useState({})
+
+  const touch = (field) => {
+    setTouched((t) => ({ ...t, [field]: true }))
+    const e = validate()
+    setErrors((prev) => ({ ...prev, [field]: e[field] || '' }))
+  }
+
+  const isFormValid = Object.keys(validate()).length === 0
+
   const validate = () => {
     const e = {}
     if (!name.trim()) e.name = 'Name is required'
@@ -171,6 +181,19 @@ export default function CheckoutPage() {
   }
 
   const handleWhatsApp = () => {
+    const e = validate()
+    if (Object.keys(e).length > 0) {
+      setErrors(e)
+      setTouched({
+        name: true,
+        phone: true,
+        line1: true,
+        line2: true,
+        line3: true,
+        pincode: true
+      })
+      return
+    }
     const fullAddress = [line1, line2, line3, pincode]
       .map((s) => s.trim())
       .filter(Boolean)
@@ -200,6 +223,15 @@ export default function CheckoutPage() {
     const e = validate()
     if (Object.keys(e).length > 0) {
       setErrors(e)
+      // Mark all fields touched so errors are visible
+      setTouched({
+        name: true,
+        phone: true,
+        line1: true,
+        line2: true,
+        line3: true,
+        pincode: true
+      })
       return
     }
     setErrors({})
@@ -289,19 +321,22 @@ export default function CheckoutPage() {
     new window.Razorpay(options).open()
   }
 
-  const inp = (hasErr) => ({
-    width: '100%',
-    boxSizing: 'border-box',
-    background: 'rgba(255,255,255,0.04)',
-    border: `0.5px solid ${hasErr ? '#e05a5a' : 'rgba(255,255,255,0.12)'}`,
-    borderRadius: 6,
-    padding: '11px 14px',
-    fontFamily: 'var(--ff-sans)',
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    outline: 'none',
-    transition: 'border-color .2s'
-  })
+  const inp = (hasErr, fieldName) => {
+    const isValid = fieldName && touched[fieldName] && !hasErr
+    return {
+      width: '100%',
+      boxSizing: 'border-box',
+      background: 'var(--w04)',
+      border: `0.5px solid ${hasErr ? '#e05a5a' : isValid ? 'rgba(76,175,125,0.5)' : 'var(--w12)'}`,
+      borderRadius: 6,
+      padding: '11px 14px',
+      fontFamily: 'var(--ff-sans)',
+      fontSize: 14,
+      color: 'var(--t1)',
+      outline: 'none',
+      transition: 'border-color .2s'
+    }
+  }
 
   const lbl = {
     fontSize: 11,
@@ -779,20 +814,22 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>Full Name</label>
                   <input
-                    style={inp(errors.name)}
+                    style={inp(errors.name, 'name')}
                     value={name}
                     onChange={(e) => {
                       setName(e.target.value)
                       setErrors((v) => ({ ...v, name: '' }))
                     }}
+                    onBlur={() => touch('name')}
                     placeholder='Priya Sharma'
+                    required
                   />
                   <FieldError msg={errors.name} />
                 </div>
                 <div>
                   <label style={lbl}>Phone Number</label>
                   <input
-                    style={inp(errors.phone)}
+                    style={inp(errors.phone, 'phone')}
                     type='tel'
                     value={phone}
                     onChange={(e) => {
@@ -800,8 +837,10 @@ export default function CheckoutPage() {
                       setPhone(val)
                       setErrors((v) => ({ ...v, phone: '' }))
                     }}
+                    onBlur={() => touch('phone')}
                     placeholder='9876543210'
                     maxLength={10}
+                    required
                   />
                   <FieldError msg={errors.phone} />
                 </div>
@@ -811,13 +850,15 @@ export default function CheckoutPage() {
               <div>
                 <label style={lbl}>Flat / House No. & Street</label>
                 <input
-                  style={inp(errors.line1)}
+                  style={inp(errors.line1, 'line1')}
                   value={line1}
                   onChange={(e) => {
                     setLine1(e.target.value)
                     setErrors((v) => ({ ...v, line1: '' }))
                   }}
+                  onBlur={() => touch('line1')}
                   placeholder='12A, MG Road'
+                  required
                 />
                 <FieldError msg={errors.line1} />
               </div>
@@ -826,13 +867,15 @@ export default function CheckoutPage() {
               <div>
                 <label style={lbl}>Area / Locality</label>
                 <input
-                  style={inp(errors.line2)}
+                  style={inp(errors.line2, 'line2')}
                   value={line2}
                   onChange={(e) => {
                     setLine2(e.target.value)
                     setErrors((v) => ({ ...v, line2: '' }))
                   }}
+                  onBlur={() => touch('line2')}
                   placeholder='Koramangala'
+                  required
                 />
                 <FieldError msg={errors.line2} />
               </div>
@@ -848,20 +891,22 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>City & State</label>
                   <input
-                    style={inp(errors.line3)}
+                    style={inp(errors.line3, 'line3')}
                     value={line3}
                     onChange={(e) => {
                       setLine3(e.target.value)
                       setErrors((v) => ({ ...v, line3: '' }))
                     }}
+                    onBlur={() => touch('line3')}
                     placeholder='Bengaluru, Karnataka'
+                    required
                   />
                   <FieldError msg={errors.line3} />
                 </div>
                 <div>
                   <label style={lbl}>PIN Code</label>
                   <input
-                    style={inp(errors.pincode)}
+                    style={inp(errors.pincode, 'pincode')}
                     type='text'
                     inputMode='numeric'
                     maxLength={6}
@@ -871,7 +916,9 @@ export default function CheckoutPage() {
                       setPincode(val)
                       setErrors((v) => ({ ...v, pincode: '' }))
                     }}
+                    onBlur={() => touch('pincode')}
                     placeholder='560034'
+                    required
                   />
                   <FieldError msg={errors.pincode} />
                 </div>
@@ -990,11 +1037,19 @@ export default function CheckoutPage() {
               <div style={{ marginBottom: 10 }}>
                 <button
                   onClick={handleWhatsApp}
+                  disabled={!isFormValid}
+                  title={
+                    !isFormValid
+                      ? 'Please fill in all delivery details above'
+                      : ''
+                  }
                   style={{
                     width: '100%',
                     padding: '16px',
                     borderRadius: 6,
-                    background: '#25D366',
+                    background: isFormValid
+                      ? '#25D366'
+                      : 'rgba(37,211,102,0.3)',
                     border: 'none',
                     color: '#fff',
                     fontFamily: 'var(--ff-sans)',
@@ -1002,12 +1057,15 @@ export default function CheckoutPage() {
                     fontWeight: 600,
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
-                    cursor: 'pointer',
+                    cursor: isFormValid ? 'pointer' : 'not-allowed',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 10,
-                    boxShadow: '0 4px 20px rgba(37,211,102,0.25)'
+                    boxShadow: isFormValid
+                      ? '0 4px 20px rgba(37,211,102,0.25)'
+                      : 'none',
+                    transition: 'all .2s'
                   }}
                 >
                   <svg
@@ -1069,26 +1127,49 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              {/* Validation hint */}
+              {!isFormValid && Object.values(touched).some(Boolean) && (
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: '#e05a5a',
+                    marginBottom: 10,
+                    textAlign: 'center'
+                  }}
+                >
+                  ↑ Please fill in all required delivery fields
+                </p>
+              )}
+
               <button
                 onClick={handlePay}
-                disabled={paying}
+                disabled={paying || !isFormValid}
+                title={
+                  !isFormValid
+                    ? 'Please fill in all delivery details above'
+                    : ''
+                }
                 style={{
                   width: '100%',
                   padding: '13px',
                   borderRadius: 6,
-                  background: paying
-                    ? 'rgba(176,144,96,0.4)'
-                    : 'rgba(176,144,96,0.15)',
-                  border: '0.5px solid rgba(176,144,96,0.3)',
-                  color: paying
-                    ? 'rgba(255,255,255,0.4)'
-                    : 'rgba(255,255,255,0.7)',
+                  background: !isFormValid
+                    ? 'rgba(176,144,96,0.08)'
+                    : paying
+                      ? 'rgba(176,144,96,0.4)'
+                      : 'rgba(176,144,96,0.15)',
+                  border: `0.5px solid ${isFormValid ? 'rgba(176,144,96,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                  color: !isFormValid
+                    ? 'rgba(255,255,255,0.2)'
+                    : paying
+                      ? 'rgba(255,255,255,0.4)'
+                      : 'rgba(255,255,255,0.7)',
                   fontFamily: 'var(--ff-sans)',
                   fontSize: 13,
                   fontWeight: 500,
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
-                  cursor: paying ? 'not-allowed' : 'pointer',
+                  cursor: !isFormValid || paying ? 'not-allowed' : 'pointer',
                   transition: 'all .2s'
                 }}
               >
