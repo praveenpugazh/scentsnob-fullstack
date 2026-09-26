@@ -3067,6 +3067,237 @@ function DiscountsTab() {
   )
 }
 
+// ── ANNOUNCEMENTS TAB ─────────────────────────────────────────────────────────
+function AnnouncementsTab() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [msg, setMsg] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (m, type = 'success') => {
+    setToast({ m, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  useEffect(() => {
+    fetch('/api/announcements')
+      .then((r) => r.json())
+      .then((d) => {
+        setItems(Array.isArray(d) ? d : [])
+        setLoading(false)
+      })
+  }, [])
+
+  const add = async () => {
+    if (!msg.trim()) return
+    setSaving(true)
+    const r = await fetch('/api/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg.trim(), active: true })
+    })
+    const created = await r.json()
+    setItems((prev) => [created, ...prev])
+    setMsg('')
+    setSaving(false)
+    showToast('Banner added and set live')
+  }
+
+  const toggle = async (item) => {
+    const r = await fetch(`/api/announcements/${item.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !item.active })
+    })
+    const updated = await r.json()
+    setItems((prev) => prev.map((x) => (x.id === item.id ? updated : x)))
+  }
+
+  const del = async (id) => {
+    await fetch(`/api/announcements/${id}`, { method: 'DELETE' })
+    setItems((prev) => prev.filter((x) => x.id !== id))
+    showToast('Deleted')
+  }
+
+  const activeBanner = items.find((x) => x.active)
+
+  return (
+    <div>
+      <SaveToast msg={toast?.m} type={toast?.type} />
+
+      {/* Live preview */}
+      <div style={{ marginBottom: 24 }}>
+        <div
+          style={{
+            fontSize: 10,
+            color: 'var(--t3)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: 8
+          }}
+        >
+          Live preview — what customers see now
+        </div>
+        <div
+          style={{
+            background: activeBanner ? 'var(--gold-08)' : 'var(--w04)',
+            border: `0.5px solid ${activeBanner ? 'var(--gold-20)' : 'var(--w08)'}`,
+            borderRadius: 6,
+            padding: '10px 16px',
+            textAlign: 'center',
+            fontSize: 12,
+            color: activeBanner ? 'var(--gold)' : 'var(--t3)',
+            letterSpacing: '0.06em'
+          }}
+        >
+          {activeBanner ? activeBanner.message : '— No active banner —'}
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 6 }}>
+          This bar appears below the nav on your homepage. Only one banner is
+          shown at a time — the first active one.
+        </div>
+      </div>
+
+      {/* Add new */}
+      <div style={{ marginBottom: 24 }}>
+        <div
+          style={{
+            fontSize: 10,
+            color: 'var(--gold)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            marginBottom: 8,
+            fontWeight: 600
+          }}
+        >
+          New Announcement
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            style={{ ...S.inp, flex: 1, fontSize: 13 }}
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+            placeholder='e.g. 🎉 New drops available — Amouage, Initio & more'
+            onKeyDown={(e) => e.key === 'Enter' && add()}
+          />
+          <button
+            onClick={add}
+            disabled={saving || !msg.trim()}
+            style={{
+              ...S.btn,
+              background: 'var(--gold)',
+              color: '#fff',
+              padding: '0 20px',
+              fontSize: 12,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              opacity: !msg.trim() ? 0.5 : 1,
+              flexShrink: 0
+            }}
+          >
+            {saving ? 'Adding...' : 'Add & Go Live'}
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      <div
+        style={{
+          fontSize: 10,
+          color: 'var(--t3)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          marginBottom: 10,
+          fontWeight: 600
+        }}
+      >
+        All Banners
+      </div>
+      {loading ? (
+        <div style={{ color: 'var(--t3)', padding: '2rem' }}>Loading...</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {items.length === 0 && (
+            <div style={{ color: 'var(--t3)', fontSize: 13 }}>
+              No banners yet.
+            </div>
+          )}
+          {items.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                background: item.active ? 'var(--gold-05)' : 'var(--w04)',
+                border: `0.5px solid ${item.active ? 'var(--gold-20)' : 'var(--w08)'}`,
+                borderRadius: 6,
+                padding: '10px 14px'
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  color: item.active ? 'var(--t1)' : 'var(--t3)'
+                }}
+              >
+                {item.message}
+              </div>
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: '2px 8px',
+                  borderRadius: 3,
+                  flexShrink: 0,
+                  background: item.active ? 'var(--green-bg)' : 'var(--w06)',
+                  color: item.active ? 'var(--green-txt)' : 'var(--t3)',
+                  border: `0.5px solid ${item.active ? 'var(--green-br)' : 'var(--w10)'}`,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600
+                }}
+              >
+                {item.active ? 'Live' : 'Off'}
+              </span>
+              <button
+                onClick={() => toggle(item)}
+                style={{
+                  ...S.btn,
+                  fontSize: 10,
+                  padding: '3px 10px',
+                  background: item.active ? 'var(--red-bg)' : 'var(--green-bg)',
+                  border: `0.5px solid ${item.active ? 'var(--red-br)' : 'var(--green-br)'}`,
+                  color: item.active ? 'var(--red)' : 'var(--green-txt)',
+                  flexShrink: 0
+                }}
+              >
+                {item.active ? 'Deactivate' : 'Activate'}
+              </button>
+              <button
+                onClick={() => del(item.id)}
+                style={{
+                  ...S.btn,
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--red)',
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  flexShrink: 0
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── ADMIN AUTH + SHELL ────────────────────────────────────────────────────────
 export default function AdminPage() {
   const router = useRouter()
@@ -3410,7 +3641,8 @@ export default function AdminPage() {
             ['partials', 'Partials'],
             ['stock', 'Stock'],
             ['pricing', 'Pricing'],
-            ['discounts', 'Discounts']
+            ['discounts', 'Discounts'],
+            ['announcements', '📢 Banner']
           ].map(([id, label]) => (
             <button
               key={id}
@@ -3439,6 +3671,7 @@ export default function AdminPage() {
         {tab === 'stock' && <StockTab />}
         {tab === 'pricing' && <PricingTab />}
         {tab === 'discounts' && <DiscountsTab />}
+        {tab === 'announcements' && <AnnouncementsTab />}
       </div>
     </div>
   )

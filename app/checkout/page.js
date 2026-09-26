@@ -1,8 +1,6 @@
 'use client'
-import { siteNameShort, whatsappNumber } from '@/lib/config'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import LuckyWheel from '@/components/LuckyWheel'
 import Link from 'next/link'
 import { createBrowserSupabase } from '@/lib/supabase'
 import {
@@ -49,8 +47,6 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [done, setDone] = useState(null) // confirmed order
-  const [wheelPrize, setWheelPrize] = useState(null)
-  const [showWheel, setShowWheel] = useState(true) // TEMP for testing — change back to false
   const [products, setProducts] = useState([])
 
   // Address fields — 4 lines
@@ -123,42 +119,7 @@ export default function CheckoutPage() {
   const grandTotal = subtotal + shipping
   const totalQty = items.reduce((a, [, b]) => a + b.qty, 0)
 
-  const discountAmount = couponApplied?.discount_amount || 0
-  const finalTotal = Math.max(0, grandTotal - discountAmount)
-
-  // Razorpay charges 2% + 18% GST = 2.36% effective
-  const RAZORPAY_FEE_PCT = 0.0236
-  const razorpayFee = Math.round(finalTotal * RAZORPAY_FEE_PCT)
-  const razorpayTotal = finalTotal + razorpayFee
-
   // Validation
-  const [touched, setTouched] = useState({})
-
-  const touch = (field) => {
-    setTouched((t) => ({ ...t, [field]: true }))
-    // Re-run validate after state update to show field error on blur
-    setErrors((prev) => {
-      const e = {
-        ...prev,
-        name: !name.trim() ? 'Name is required' : '',
-        phone: !phone.trim()
-          ? 'Phone number is required'
-          : phone.replace(/\D/g, '').length !== 10
-            ? 'Must be exactly 10 digits'
-            : '',
-        line1: !line1.trim() ? 'House / flat number and street required' : '',
-        line2: !line2.trim() ? 'Area / locality required' : '',
-        line3: !line3.trim() ? 'City and state required' : '',
-        pincode: !pincode.trim()
-          ? 'PIN code required'
-          : !/^\d{6}$/.test(pincode.trim())
-            ? 'Must be a 6-digit PIN code'
-            : ''
-      }
-      return { ...prev, [field]: e[field] }
-    })
-  }
-
   const validate = () => {
     const e = {}
     if (!name.trim()) e.name = 'Name is required'
@@ -173,8 +134,6 @@ export default function CheckoutPage() {
       e.pincode = 'Must be a 6-digit PIN code'
     return e
   }
-
-  const isFormValid = Object.keys(validate()).length === 0
 
   const applyCoupon = async () => {
     if (!coupon.trim()) return
@@ -199,6 +158,9 @@ export default function CheckoutPage() {
     setCouponError('')
   }
 
+  const discountAmount = couponApplied?.discount_amount || 0
+  const finalTotal = Math.max(0, grandTotal - discountAmount)
+
   const handleWhatsApp = () => {
     const e = validate()
     if (Object.keys(e).length > 0) {
@@ -221,17 +183,22 @@ export default function CheckoutPage() {
       const label = item.isPartial
         ? `${item.brand} ${item.name} (Partial)`
         : `${item.brand} ${item.name} ${item.size}`
-      return `• ${label} × ${item.qty} — ${formatINR(item.price * item.qty)}`
+      return `• ${label} × ${item.qty} — ₹${(item.price * item.qty).toLocaleString('en-IN')}`
     })
-    let msg = `Hi ${siteNameShort}! I'd like to place an order 🛒\n\n`
+    let msg = `Hi! I'd like to place an order 🛒\n\n`
     msg += lines.join('\n')
-    msg += `\n\nSubtotal: ${formatINR(subtotal)}`
-    msg += `\nShipping: ${shipping === 0 ? 'Free' : formatINR(shipping)}`
-    if (discountAmount) msg += `\nDiscount: − ${formatINR(discountAmount)}`
-    msg += `\n*Total: ${formatINR(finalTotal)}*`
-    msg += `\n\nName: ${name.trim()}`
+    msg += `\n\nSubtotal: ₹${subtotal.toLocaleString('en-IN')}`
+    msg += `\nShipping: ${shipping === 0 ? 'Free' : '₹' + shipping}`
+    if (discountAmount)
+      msg += `\nDiscount: − ₹${discountAmount.toLocaleString('en-IN')}`
+    msg += `\n*Total: ₹${finalTotal.toLocaleString('en-IN')}*`
+    msg += `\n\n💳 *Please pay via UPI:*`
+    msg += `\nUPI ID: praveenpugazh14@okicici`
+    msg += `\nName: Praveen P`
+    msg += `\n\n📦 *Deliver to:*`
+    msg += `\n${name.trim()}`
     msg += `\nPhone: ${phone.trim()}`
-    if (fullAddress) msg += `\nAddress: ${fullAddress}`
+    msg += `\nAddress: ${fullAddress}`
     window.open(
       `https://wa.me/918754519509?text=${encodeURIComponent(msg)}`,
       '_blank'
@@ -242,15 +209,6 @@ export default function CheckoutPage() {
     const e = validate()
     if (Object.keys(e).length > 0) {
       setErrors(e)
-      // Mark all fields touched so errors are visible
-      setTouched({
-        name: true,
-        phone: true,
-        line1: true,
-        line2: true,
-        line3: true,
-        pincode: true
-      })
       return
     }
     setErrors({})
@@ -270,7 +228,7 @@ export default function CheckoutPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: razorpayTotal,
+        amount: grandTotal,
         receipt: `rcpt_${Date.now()}`
       })
     })
@@ -317,7 +275,7 @@ export default function CheckoutPage() {
             items: items.map(([, v]) => v),
             subtotal,
             shipping,
-            total: razorpayTotal,
+            total: finalTotal,
             discount_code: couponApplied?.code || null,
             discount_amount: discountAmount,
             user_id: userId || undefined
@@ -340,22 +298,19 @@ export default function CheckoutPage() {
     new window.Razorpay(options).open()
   }
 
-  const inp = (hasErr, fieldName) => {
-    const isValid = fieldName && touched[fieldName] && !hasErr
-    return {
-      width: '100%',
-      boxSizing: 'border-box',
-      background: 'var(--w04)',
-      border: `0.5px solid ${hasErr ? '#e05a5a' : isValid ? 'rgba(76,175,125,0.5)' : 'var(--w12)'}`,
-      borderRadius: 6,
-      padding: '11px 14px',
-      fontFamily: 'var(--ff-sans)',
-      fontSize: 14,
-      color: 'var(--t1)',
-      outline: 'none',
-      transition: 'border-color .2s'
-    }
-  }
+  const inp = (hasErr) => ({
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'rgba(255,255,255,0.04)',
+    border: `0.5px solid ${hasErr ? '#e05a5a' : 'rgba(255,255,255,0.12)'}`,
+    borderRadius: 6,
+    padding: '11px 14px',
+    fontFamily: 'var(--ff-sans)',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    outline: 'none',
+    transition: 'border-color .2s'
+  })
 
   const lbl = {
     fontSize: 11,
@@ -364,20 +319,6 @@ export default function CheckoutPage() {
     color: 'rgba(255,255,255,0.4)',
     display: 'block',
     marginBottom: 6
-  }
-
-  const handleWheelWin = async (prize) => {
-    setWheelPrize(prize)
-    // Save prize to order notes
-    if (done?.id) {
-      await fetch(`/api/orders/${done.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          notes: `Free sample: ${prize.brand} ${prize.name} 2ml`
-        })
-      })
-    }
   }
 
   // ── ORDER CONFIRMED ──────────────────────────────────────────────────
@@ -626,42 +567,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {showWheel && (
-            <LuckyWheel
-              products={products}
-              onWin={handleWheelWin}
-              onClose={() => setShowWheel(false)}
-            />
-          )}
-
-          {wheelPrize && !showWheel && (
-            <div
-              style={{
-                background: 'rgba(176,144,96,0.08)',
-                border: '0.5px solid rgba(176,144,96,0.25)',
-                borderRadius: 8,
-                padding: '12px 16px',
-                marginBottom: 16,
-                textAlign: 'center'
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'var(--gold)',
-                  marginBottom: 4
-                }}
-              >
-                🎁 Your free sample
-              </div>
-              <div style={{ fontSize: 14, color: 'var(--t1)' }}>
-                {wheelPrize.brand} {wheelPrize.name} — 2ml
-              </div>
-            </div>
-          )}
-
           <Link
             href='/'
             style={{
@@ -780,16 +685,15 @@ export default function CheckoutPage() {
           style={{
             maxWidth: 1100,
             margin: '0 auto',
-            padding: '2rem 4vw 6rem',
+            padding: '3rem 4vw 6rem',
             display: 'grid',
             gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.9fr)',
             gap: 40,
             alignItems: 'start'
           }}
-          className='checkout-grid'
         >
           {/* ── LEFT: DELIVERY FORM ── */}
-          <div className='checkout-form-card'>
+          <div>
             <h1
               style={{
                 fontFamily: 'var(--ff-serif)',
@@ -833,22 +737,20 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>Full Name</label>
                   <input
-                    style={inp(errors.name, 'name')}
+                    style={inp(errors.name)}
                     value={name}
                     onChange={(e) => {
                       setName(e.target.value)
                       setErrors((v) => ({ ...v, name: '' }))
                     }}
-                    onBlur={() => touch('name')}
                     placeholder='Priya Sharma'
-                    required
                   />
                   <FieldError msg={errors.name} />
                 </div>
                 <div>
                   <label style={lbl}>Phone Number</label>
                   <input
-                    style={inp(errors.phone, 'phone')}
+                    style={inp(errors.phone)}
                     type='tel'
                     value={phone}
                     onChange={(e) => {
@@ -856,10 +758,8 @@ export default function CheckoutPage() {
                       setPhone(val)
                       setErrors((v) => ({ ...v, phone: '' }))
                     }}
-                    onBlur={() => touch('phone')}
                     placeholder='9876543210'
                     maxLength={10}
-                    required
                   />
                   <FieldError msg={errors.phone} />
                 </div>
@@ -869,15 +769,13 @@ export default function CheckoutPage() {
               <div>
                 <label style={lbl}>Flat / House No. & Street</label>
                 <input
-                  style={inp(errors.line1, 'line1')}
+                  style={inp(errors.line1)}
                   value={line1}
                   onChange={(e) => {
                     setLine1(e.target.value)
                     setErrors((v) => ({ ...v, line1: '' }))
                   }}
-                  onBlur={() => touch('line1')}
                   placeholder='12A, MG Road'
-                  required
                 />
                 <FieldError msg={errors.line1} />
               </div>
@@ -886,15 +784,13 @@ export default function CheckoutPage() {
               <div>
                 <label style={lbl}>Area / Locality</label>
                 <input
-                  style={inp(errors.line2, 'line2')}
+                  style={inp(errors.line2)}
                   value={line2}
                   onChange={(e) => {
                     setLine2(e.target.value)
                     setErrors((v) => ({ ...v, line2: '' }))
                   }}
-                  onBlur={() => touch('line2')}
                   placeholder='Koramangala'
-                  required
                 />
                 <FieldError msg={errors.line2} />
               </div>
@@ -910,22 +806,20 @@ export default function CheckoutPage() {
                 <div>
                   <label style={lbl}>City & State</label>
                   <input
-                    style={inp(errors.line3, 'line3')}
+                    style={inp(errors.line3)}
                     value={line3}
                     onChange={(e) => {
                       setLine3(e.target.value)
                       setErrors((v) => ({ ...v, line3: '' }))
                     }}
-                    onBlur={() => touch('line3')}
                     placeholder='Bengaluru, Karnataka'
-                    required
                   />
                   <FieldError msg={errors.line3} />
                 </div>
                 <div>
                   <label style={lbl}>PIN Code</label>
                   <input
-                    style={inp(errors.pincode, 'pincode')}
+                    style={inp(errors.pincode)}
                     type='text'
                     inputMode='numeric'
                     maxLength={6}
@@ -935,9 +829,7 @@ export default function CheckoutPage() {
                       setPincode(val)
                       setErrors((v) => ({ ...v, pincode: '' }))
                     }}
-                    onBlur={() => touch('pincode')}
                     placeholder='560034'
-                    required
                   />
                   <FieldError msg={errors.pincode} />
                 </div>
@@ -1052,64 +944,53 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* WhatsApp — primary recommended option */}
-              <div style={{ marginBottom: 10 }}>
-                <button
-                  onClick={handleWhatsApp}
-                  disabled={!isFormValid}
-                  title={
-                    !isFormValid
-                      ? 'Please fill in all delivery details above'
-                      : ''
-                  }
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    borderRadius: 6,
-                    background: isFormValid
-                      ? '#25D366'
-                      : 'rgba(37,211,102,0.3)',
-                    border: 'none',
-                    color: '#fff',
-                    fontFamily: 'var(--ff-sans)',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    cursor: isFormValid ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    boxShadow: isFormValid
-                      ? '0 4px 20px rgba(37,211,102,0.25)'
-                      : 'none',
-                    transition: 'all .2s'
-                  }}
+              {/* WhatsApp — primary, no gateway fee */}
+              <button
+                onClick={handleWhatsApp}
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  borderRadius: 6,
+                  background: '#25D366',
+                  border: 'none',
+                  color: '#fff',
+                  fontFamily: 'var(--ff-sans)',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  marginBottom: 8,
+                  boxShadow: '0 4px 16px rgba(37,211,102,0.2)',
+                  transition: 'all .2s'
+                }}
+              >
+                <svg
+                  width='18'
+                  height='18'
+                  viewBox='0 0 24 24'
+                  fill='currentColor'
                 >
-                  <svg
-                    width='20'
-                    height='20'
-                    viewBox='0 0 24 24'
-                    fill='currentColor'
-                  >
-                    <path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' />
-                  </svg>
-                  Order via WhatsApp · {formatINR(finalTotal)}
-                </button>
-                <div
-                  style={{
-                    textAlign: 'center',
-                    fontSize: 11,
-                    color: '#4caf7d',
-                    marginTop: 6,
-                    fontWeight: 500
-                  }}
-                >
-                  ✓ No payment gateway fee · Save {formatINR(razorpayFee)} · Pay
-                  via GPay / PhonePe / UPI
-                </div>
-              </div>
+                  <path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' />
+                </svg>
+                Order via WhatsApp · {formatINR(finalTotal)}
+              </button>
+              <p
+                style={{
+                  fontSize: 11,
+                  color: '#4caf7d',
+                  textAlign: 'center',
+                  marginBottom: 16,
+                  lineHeight: 1.6
+                }}
+              >
+                ✓ No payment gateway fee · Pay via UPI:{' '}
+                <strong>praveenpugazh14@okicici</strong>
+              </p>
 
               {/* Divider */}
               <div
@@ -1117,15 +998,11 @@ export default function CheckoutPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  margin: '14px 0'
+                  marginBottom: 12
                 }}
               >
                 <div
-                  style={{
-                    flex: 1,
-                    height: '0.5px',
-                    background: 'rgba(255,255,255,0.08)'
-                  }}
+                  style={{ flex: 1, height: '0.5px', background: 'var(--w08)' }}
                 />
                 <span
                   style={{
@@ -1135,78 +1012,48 @@ export default function CheckoutPage() {
                     textTransform: 'uppercase'
                   }}
                 >
-                  or pay online (fee applies)
+                  or pay online
                 </span>
                 <div
-                  style={{
-                    flex: 1,
-                    height: '0.5px',
-                    background: 'rgba(255,255,255,0.08)'
-                  }}
+                  style={{ flex: 1, height: '0.5px', background: 'var(--w08)' }}
                 />
               </div>
 
-              {/* Validation hint */}
-              {!isFormValid && Object.values(touched).some(Boolean) && (
-                <p
-                  style={{
-                    fontSize: 11,
-                    color: '#e05a5a',
-                    marginBottom: 10,
-                    textAlign: 'center'
-                  }}
-                >
-                  ↑ Please fill in all required delivery fields
-                </p>
-              )}
-
               <button
                 onClick={handlePay}
-                disabled={paying || !isFormValid}
-                title={
-                  !isFormValid
-                    ? 'Please fill in all delivery details above'
-                    : ''
-                }
+                disabled={paying}
                 style={{
                   width: '100%',
                   padding: '13px',
                   borderRadius: 6,
-                  background: !isFormValid
-                    ? 'rgba(176,144,96,0.08)'
-                    : paying
-                      ? 'rgba(176,144,96,0.4)'
-                      : 'rgba(176,144,96,0.15)',
-                  border: `0.5px solid ${isFormValid ? 'rgba(176,144,96,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                  color: !isFormValid
-                    ? 'rgba(255,255,255,0.2)'
-                    : paying
-                      ? 'rgba(255,255,255,0.4)'
-                      : 'rgba(255,255,255,0.7)',
+                  background: paying
+                    ? 'rgba(176,144,96,0.4)'
+                    : 'rgba(176,144,96,0.12)',
+                  border: '0.5px solid rgba(176,144,96,0.25)',
+                  color: 'rgba(255,255,255,0.7)',
                   fontFamily: 'var(--ff-sans)',
                   fontSize: 13,
                   fontWeight: 500,
-                  letterSpacing: '0.08em',
+                  letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  cursor: !isFormValid || paying ? 'not-allowed' : 'pointer',
+                  cursor: paying ? 'not-allowed' : 'pointer',
                   transition: 'all .2s'
                 }}
               >
                 {paying
                   ? 'Opening Payment Gateway...'
-                  : `Pay Securely · ${formatINR(razorpayTotal)}`}
+                  : `Pay Securely · ${formatINR(finalTotal)}`}
               </button>
               <p
                 style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   color: 'var(--t3)',
                   textAlign: 'center',
                   marginTop: 8,
                   lineHeight: 1.6
                 }}
               >
-                🔒 Secured by Razorpay · UPI · Cards · Netbanking · +
-                {formatINR(razorpayFee)} gateway fee included
+                🔒 Secured by Razorpay · UPI · Cards · Netbanking
               </p>
             </div>
           </div>
@@ -1397,8 +1244,6 @@ export default function CheckoutPage() {
                     <span>− {formatINR(discountAmount)}</span>
                   </div>
                 )}
-
-                {/* WhatsApp total */}
                 <div
                   style={{
                     display: 'flex',
@@ -1411,51 +1256,22 @@ export default function CheckoutPage() {
                   }}
                 >
                   <span>Total</span>
-                  <span style={{ color: 'var(--gold)' }}>
-                    {formatINR(finalTotal)}
-                  </span>
-                </div>
-
-                {/* Razorpay fee notice */}
-                <div
-                  style={{
-                    marginTop: 14,
-                    padding: '10px 12px',
-                    background: 'rgba(176,144,96,0.06)',
-                    border: '0.5px solid rgba(176,144,96,0.15)',
-                    borderRadius: 6
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 11,
-                      color: 'var(--t3)',
-                      marginBottom: 4
-                    }}
-                  >
-                    <span>💳 Payment gateway fee (2% + GST)</span>
-                    <span style={{ color: '#dc5050' }}>
-                      + {formatINR(razorpayFee)}
+                  <div style={{ textAlign: 'right' }}>
+                    {couponApplied && (
+                      <div
+                        style={{
+                          fontSize: '0.9rem',
+                          color: 'var(--t3)',
+                          textDecoration: 'line-through',
+                          marginBottom: 2
+                        }}
+                      >
+                        {formatINR(grandTotal)}
+                      </div>
+                    )}
+                    <span style={{ color: 'var(--gold)' }}>
+                      {formatINR(finalTotal)}
                     </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 12,
-                      color: 'var(--t2)'
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>If paying online</span>
-                    <span style={{ fontWeight: 700, color: 'var(--t1)' }}>
-                      {formatINR(razorpayTotal)}
-                    </span>
-                  </div>
-                  <div style={{ marginTop: 6, fontSize: 11, color: '#4caf7d' }}>
-                    💬 Order via WhatsApp + GPay to save{' '}
-                    {formatINR(razorpayFee)}
                   </div>
                 </div>
               </div>
@@ -1504,27 +1320,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       )}
-      <style>{`
-        @media (max-width: 700px) {
-          .checkout-grid {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-            padding: 1rem 4vw 6rem !important;
-          }
-          /* Form first, summary below on mobile */
-          .checkout-form-card {
-            order: 1;
-            background: var(--bg2);
-            border: 0.5px solid var(--w10);
-            border-radius: 12px;
-            padding: 20px 16px !important;
-          }
-          .checkout-grid > div:last-child {
-            order: 2;
-            position: static !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }

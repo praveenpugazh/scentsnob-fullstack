@@ -12,25 +12,52 @@ import {
 } from '@/lib/pricing'
 import { createBrowserSupabase } from '@/lib/supabase'
 
-// Combos now loaded from DB — see useEffect in Page component
-const COMBO_ITEM_TYPE_COLORS = {
-  niche: { bg: 'var(--gold-08)', text: 'var(--gold)' },
-  designer: { bg: 'rgba(100,130,200,0.12)', text: 'rgba(140,170,255,0.8)' },
-  me: { bg: 'rgba(100,100,100,0.15)', text: 'var(--w40)' }
-}
+const COMBOS = [
+  {
+    id: 'summer-escape',
+    label: 'Summer Escape',
+    emoji: '☀️',
+    tag: 'Summer Combo',
+    tagline: 'Four fresh, aquatic and citrus scents built for Indian summers.',
+    color: '#7ec8e3',
+    discountPct: 10,
+    items: [
+      { brand: 'Rasasi', name: 'Hawas Ice', size: '5ml', price: 379 },
+      { brand: 'French Avenue', name: 'Frostbite', size: '5ml', price: 349 },
+      { brand: 'Rayhaan', name: 'Aquatica', size: '5ml', price: 209 },
+      { brand: 'Afnan', name: 'Turathi Blue', size: '5ml', price: 229 }
+    ]
+  },
+  {
+    id: 'starter-pack',
+    label: 'The Starter Pack',
+    emoji: '🎯',
+    tag: 'Starter Combo',
+    tagline: 'New to fragrance? Four crowd-pleasing picks to get you started.',
+    color: '#4caf7d',
+    discountPct: 10,
+    items: [
+      { brand: 'Lattafa', name: 'Asad Elixir', size: '5ml', price: 179 },
+      { brand: 'Afnan', name: '9pm Elixir', size: '5ml', price: 219 },
+      { brand: 'Rayhaan', name: 'Aquatica', size: '5ml', price: 209 },
+      { brand: 'Armaf', name: 'Odyssey Spectre', size: '5ml', price: 159 }
+    ]
+  }
+]
 
 function comboPrice(combo) {
-  const pct = combo.discount_pct ?? combo.discountPct ?? 10
-  const original = (combo.items || []).reduce((s, i) => s + i.price, 0)
-  const discounted = Math.round((original * (1 - pct / 100)) / 10) * 10
+  const original = combo.items.reduce((s, i) => s + i.price, 0)
+  const discounted =
+    Math.round((original * (1 - combo.discountPct / 100)) / 10) * 10
   return { original, discounted, saving: original - discounted }
 }
 
 function addComboToCart(combo, addToCart, showToast) {
   const { discounted } = comboPrice(combo)
-  const original = (combo.items || []).reduce((s, i) => s + i.price, 0)
+  const original = combo.items.reduce((s, i) => s + i.price, 0)
   combo.items.forEach((item) => {
     const p = Math.round(((item.price / original) * discounted) / 10) * 10
+    // Pass silent=true to suppress individual toasts
     addToCart(
       {
         id: `combo-${combo.id}-${item.name}`,
@@ -43,6 +70,7 @@ function addComboToCart(combo, addToCart, showToast) {
       true
     )
   })
+  // Show one combined toast for the whole combo
   if (showToast)
     showToast(`${combo.label} added — ${combo.items.length} items 🧴`)
 }
@@ -57,7 +85,7 @@ const BRAND_CATS = [
 export default function Home() {
   const [products, setProducts] = useState([])
   const [partials, setPartials] = useState([])
-  const [combos, setCombos] = useState([])
+  const [announcement, setAnnouncement] = useState(null)
   const [cart, setCart] = useState({})
   const [cartOpen, setCartOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -72,13 +100,15 @@ export default function Home() {
     Promise.all([
       fetch('/api/products').then((r) => r.json()),
       fetch('/api/partials').then((r) => r.json()),
-      fetch('/api/combos').then((r) => r.json())
-    ]).then(([prods, parts, combosData]) => {
+      fetch('/api/announcements').then((r) => r.json())
+    ]).then(([prods, parts, announcements]) => {
       setProducts(Array.isArray(prods) ? prods : [])
       setPartials(Array.isArray(parts) ? parts : [])
-      setCombos(
-        Array.isArray(combosData) ? combosData.filter((c) => c.active) : []
-      )
+      // Show only the first active announcement
+      const active = Array.isArray(announcements)
+        ? announcements.find((a) => a.active) || null
+        : null
+      setAnnouncement(active)
       setLoading(false)
     })
   }, [])
@@ -205,7 +235,6 @@ export default function Home() {
     setTab(id)
     setSelectedBrand(null)
     setSearch('')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const S = {
@@ -239,21 +268,23 @@ export default function Home() {
         onTabChange={switchTab}
       />
 
-      {/* Announcement bar */}
-      <div
-        style={{
-          background: '#0e0c0a',
-          borderBottom: '0.5px solid rgba(255,255,255,0.05)',
-          padding: '7px 0',
-          textAlign: 'center',
-          fontSize: 11,
-          color: 'var(--t3)',
-          letterSpacing: '0.1em'
-        }}
-      >
-        Free shipping above ₹3,000 · PAN India · Free 2ml niche sample on orders
-        above ₹4,999
-      </div>
+      {/* Announcement bar — managed from admin */}
+      {announcement && (
+        <div
+          style={{
+            background: 'var(--gold-08)',
+            borderBottom: '0.5px solid var(--gold-20)',
+            padding: '8px 16px',
+            textAlign: 'center',
+            fontSize: 12,
+            color: 'var(--gold)',
+            letterSpacing: '0.08em',
+            lineHeight: 1.5
+          }}
+        >
+          {announcement.message}
+        </div>
+      )}
 
       {/* ── SEARCH RESULTS ── */}
       {searchQ && (
@@ -658,7 +689,7 @@ export default function Home() {
                 marginBottom: '4rem'
               }}
             >
-              {combos.map((combo) => {
+              {COMBOS.map((combo) => {
                 const { original, discounted, saving } = comboPrice(combo)
                 return (
                   <div
@@ -734,67 +765,15 @@ export default function Home() {
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
-                            alignItems: 'center',
                             fontSize: 12,
-                            color: 'var(--w45)',
-                            padding: '5px 0',
-                            borderBottom:
-                              i < combo.items.length - 1
-                                ? '0.5px solid var(--w04)'
-                                : 'none'
+                            color: 'rgba(255,255,255,0.45)',
+                            padding: '4px 0'
                           }}
                         >
-                          <span
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6
-                            }}
-                          >
-                            {item.type && (
-                              <span
-                                style={{
-                                  fontSize: 8,
-                                  letterSpacing: '0.1em',
-                                  textTransform: 'uppercase',
-                                  padding: '1px 5px',
-                                  borderRadius: 2,
-                                  background:
-                                    item.type === 'niche'
-                                      ? 'var(--gold-08)'
-                                      : item.type === 'designer'
-                                        ? 'rgba(100,130,200,0.12)'
-                                        : 'rgba(100,100,100,0.15)',
-                                  color:
-                                    item.type === 'niche'
-                                      ? 'var(--gold)'
-                                      : item.type === 'designer'
-                                        ? 'rgba(140,170,255,0.8)'
-                                        : 'var(--w40)',
-                                  flexShrink: 0
-                                }}
-                              >
-                                {item.type === 'niche'
-                                  ? 'Niche'
-                                  : item.type === 'designer'
-                                    ? 'Designer'
-                                    : 'ME'}
-                              </span>
-                            )}
-                            {item.brand} {item.name}{' '}
-                            <span style={{ color: 'var(--w25)' }}>
-                              ({item.size})
-                            </span>
+                          <span>
+                            {item.brand} {item.name} ({item.size})
                           </span>
-                          <span
-                            style={{
-                              color: 'var(--w35)',
-                              flexShrink: 0,
-                              marginLeft: 8
-                            }}
-                          >
-                            ₹{item.price}
-                          </span>
+                          <span>₹{item.price}</span>
                         </div>
                       ))}
                     </div>
