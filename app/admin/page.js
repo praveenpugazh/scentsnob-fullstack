@@ -1,12 +1,10 @@
 'use client'
-import { siteName } from '@/lib/config'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { calcPrices, formatINR } from '@/lib/pricing'
+import { calcPrices, formatINR, DEFAULT_MARGIN } from '@/lib/pricing'
 import { createBrowserSupabase } from '@/lib/supabase'
 
-const ADMIN_EMAIL =
-  process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'praveenpugazh14@gmail.com'
+const ADMIN_EMAIL = 'praveenpugazh14@gmail.com'
 
 const S = {
   btn: {
@@ -907,6 +905,7 @@ function ProductsTab() {
     category: 'niche',
     paid_amount: '',
     bottle_ml: '',
+    margin: 5,
     p5: 0,
     p10: 0,
     p20: 0,
@@ -929,9 +928,10 @@ function ProductsTab() {
       })
   }, [])
 
-  const recalc = (paid, ml) => {
+  const recalc = (paid, ml, marginPct) => {
+    const m = (marginPct !== undefined ? marginPct : form.margin) / 100
     if (paid && ml) {
-      const { p5, p10, p20, p30 } = calcPrices(Number(paid), Number(ml))
+      const { p5, p10, p20, p30 } = calcPrices(Number(paid), Number(ml), m)
       setForm((f) => ({ ...f, p5, p10, p20, p30, _autoCalc: true }))
     }
   }
@@ -1051,6 +1051,7 @@ function ProductsTab() {
       category: p.category || 'niche',
       paid_amount: p.paid_amount != null ? String(p.paid_amount) : '',
       bottle_ml: p.bottle_ml != null ? String(p.bottle_ml) : '',
+      margin: p.margin != null ? p.margin : 5,
       p5: p.p5 != null ? p.p5 : 0,
       p10: p.p10 != null ? p.p10 : 0,
       p20: p.p20 != null ? p.p20 : 0,
@@ -1248,7 +1249,7 @@ function ProductsTab() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
                 gap: 12,
                 marginBottom: 12
               }}
@@ -1274,7 +1275,7 @@ function ProductsTab() {
                   placeholder='5500'
                   onChange={(e) => {
                     set('paid_amount', e.target.value)
-                    recalc(e.target.value, form.bottle_ml)
+                    recalc(e.target.value, form.bottle_ml, form.margin)
                   }}
                 />
               </div>
@@ -1287,7 +1288,28 @@ function ProductsTab() {
                   placeholder='50'
                   onChange={(e) => {
                     set('bottle_ml', e.target.value)
-                    recalc(form.paid_amount, e.target.value)
+                    recalc(form.paid_amount, e.target.value, form.margin)
+                  }}
+                />
+              </div>
+              <div>
+                <label style={S.lbl}>
+                  Margin %{' '}
+                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}>
+                    {form.margin}%
+                  </span>
+                </label>
+                <input
+                  style={{ ...S.inp, color: 'var(--gold)', fontWeight: 600 }}
+                  type='number'
+                  min='0'
+                  max='80'
+                  step='1'
+                  value={form.margin}
+                  onChange={(e) => {
+                    const m = Number(e.target.value)
+                    set('margin', m)
+                    recalc(form.paid_amount, form.bottle_ml, m)
                   }}
                 />
               </div>
@@ -3211,7 +3233,7 @@ export default function AdminPage() {
               textAlign: 'center'
             }}
           >
-            {siteName} <span style={{ color: 'var(--gold)' }}>Admin</span>
+            Scent Snob <span style={{ color: 'var(--gold)' }}>Admin</span>
           </h2>
           <p
             style={{
@@ -3351,7 +3373,7 @@ export default function AdminPage() {
             color: 'var(--t1)'
           }}
         >
-          {siteName} <span style={{ color: 'var(--gold)' }}>Admin</span>
+          Scent Snob <span style={{ color: 'var(--gold)' }}>Admin</span>
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ fontSize: 11, color: 'var(--t3)' }}>
