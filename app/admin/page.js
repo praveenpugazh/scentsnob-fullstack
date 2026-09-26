@@ -3124,7 +3124,28 @@ function AnnouncementsTab() {
 
   return (
     <div>
-      <SaveToast msg={toast?.m} type={toast?.type} />
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 500,
+            background:
+              toast.type === 'error'
+                ? 'rgba(220,80,80,0.12)'
+                : 'rgba(76,175,125,0.12)',
+            border: `0.5px solid ${toast.type === 'error' ? 'rgba(220,80,80,0.3)' : 'rgba(76,175,125,0.3)'}`,
+            borderRadius: 8,
+            padding: '10px 16px',
+            fontSize: 13,
+            color: toast.type === 'error' ? '#e05a5a' : '#4caf7d',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}
+        >
+          {toast.type === 'error' ? '✕' : '✓'} {toast.m}
+        </div>
+      )}
 
       {/* Live preview */}
       <div style={{ marginBottom: 24 }}>
